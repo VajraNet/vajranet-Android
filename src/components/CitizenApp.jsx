@@ -26,13 +26,15 @@ import {
   ExternalLink,
   ChevronRight,
   Sparkles,
-  ArrowLeft
+  ArrowLeft,
+  Users
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import LoginPage from './LoginPage';
+import MeshChat from './MeshChat';
 
 export default function CitizenApp() {
-  // Navigation State: 'home' | 'help' | 'alerts' | 'ai' | 'report'
+  // Navigation State: 'home' | 'help' | 'mesh' | 'alerts' | 'ai' | 'report'
   const [activeTab, setActiveTab] = useState('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [gpsCoords, setGpsCoords] = useState({ lat: 28.6139, lon: 77.2090, accuracy: 'High (4m)' });
@@ -43,7 +45,7 @@ export default function CitizenApp() {
   const [sosType, setSosType] = useState('CRITICAL'); // 'CRITICAL' | 'HIGH' | 'MEDIUM'
   const [sosNotes, setSosNotes] = useState('');
   const [assignedSosId, setAssignedSosId] = useState(null);
-  const [sosStatus, setSosStatus] = useState('SENT'); // 'SENT' | 'RECEIVED' | 'ACKNOWLEDGED' | 'RESPONDING' | 'RESOLVED'
+  const [sosStatus, setSosStatus] = useState('SENT');
 
   // User state (Persisted in localStorage)
   const [user, setUser] = useState(() => {
@@ -203,7 +205,7 @@ export default function CitizenApp() {
       if (Array.isArray(anns)) setAnnouncements(anns);
     } catch {
       setAnnouncements([
-        { id: 'A-1', title: '⚠️ FLOOD ALERT', content: 'Move to higher ground immediately. Evacuate Zone B using Route 3.', severity: 'CRITICAL', created_at: new Date().toISOString() },
+        { id: 'A-1', title: '⚠️ FLOOD ALERT: Zone B Evacuation', content: 'Move to higher ground immediately. Evacuate Zone B using Route 1.', severity: 'CRITICAL', created_at: new Date().toISOString() },
         { id: 'A-2', title: 'Clean Water Tanker Deployed', content: 'Drinking water distribution operational at Station Road.', severity: 'INFO', created_at: new Date().toISOString() }
       ]);
     }
@@ -339,21 +341,50 @@ export default function CitizenApp() {
           <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center shadow-md shadow-rose-600/30">
             <ShieldAlert className="w-4 h-4 text-white" />
           </div>
-          <span className="font-black text-sm tracking-wider text-white">VAJRANET</span>
+          <div>
+            <span className="font-black text-sm tracking-wider text-white">VAJRANET</span>
+            <span className="text-[10px] text-slate-400 font-mono block -mt-0.5">
+              {user.isGuest ? 'Guest Citizen' : user.name}
+            </span>
+          </div>
         </div>
 
         {/* High-Visibility Network Status Pill */}
-        <div className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1.5 border shadow-sm ${
-          isOnline 
-            ? 'bg-emerald-950/90 text-emerald-300 border-emerald-700/80' 
-            : 'bg-amber-950/90 text-amber-300 border-amber-700/80'
-        }`}>
-          <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
-          <span>{isOnline ? '🟢 Connected' : '🟠 Offline Relay'}</span>
+        <div className="flex items-center gap-2">
+          {offlineQueue.length > 0 && (
+            <button
+              onClick={syncOfflineQueue}
+              disabled={isSyncingQueue}
+              className="bg-amber-950/80 border border-amber-600 text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw className={`w-3 h-3 ${isSyncingQueue ? 'animate-spin' : ''}`} />
+              <span>{offlineQueue.length} Buffered</span>
+            </button>
+          )}
+
+          <div className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1.5 border shadow-sm ${
+            isOnline 
+              ? 'bg-emerald-950/90 text-emerald-300 border-emerald-700/80' 
+              : 'bg-amber-950/90 text-amber-300 border-amber-700/80'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
+            <span>{isOnline ? '🟢 Connected' : '🟠 Offline Mesh'}</span>
+          </div>
+
+          <button
+            onClick={() => {
+              localStorage.removeItem('vajranet_citizen_user');
+              setUser(null);
+            }}
+            title="Log Out"
+            className="text-slate-500 hover:text-slate-300 p-1"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         </div>
       </header>
 
-      {/* ==================== MAIN CONTENT AREA ==================== */}
+      {/* ==================== MAIN CONTENT CANVAS ==================== */}
       <main className="flex-1 p-4 pb-24 overflow-y-auto space-y-4">
         
         {/* ===================== VIEW 1: HOME (EMERGENCY FIRST) ===================== */}
@@ -491,7 +522,7 @@ export default function CitizenApp() {
                     setHelpSubTab('shelters');
                     setActiveTab('help');
                   }}
-                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28"
+                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
                 >
                   <div className="w-8 h-8 rounded-xl bg-emerald-950 border border-emerald-700/80 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition">
                     <Home className="w-4 h-4" />
@@ -508,7 +539,7 @@ export default function CitizenApp() {
                     setHelpSubTab('hospitals');
                     setActiveTab('help');
                   }}
-                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28"
+                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
                 >
                   <div className="w-8 h-8 rounded-xl bg-cyan-950 border border-cyan-700/80 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition">
                     <HeartPulse className="w-4 h-4" />
@@ -525,7 +556,7 @@ export default function CitizenApp() {
                     setHelpSubTab('relief');
                     setActiveTab('help');
                   }}
-                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28"
+                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
                 >
                   <div className="w-8 h-8 rounded-xl bg-amber-950 border border-amber-700/80 flex items-center justify-center text-amber-400 group-hover:scale-110 transition">
                     <Package className="w-4 h-4" />
@@ -539,7 +570,7 @@ export default function CitizenApp() {
                 {/* Tile 4: Report Incident */}
                 <button
                   onClick={() => setActiveTab('report')}
-                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28"
+                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
                 >
                   <div className="w-8 h-8 rounded-xl bg-rose-950 border border-rose-700/80 flex items-center justify-center text-rose-400 group-hover:scale-110 transition">
                     <FileText className="w-4 h-4" />
@@ -566,7 +597,7 @@ export default function CitizenApp() {
               </h2>
               <button 
                 onClick={loadResources}
-                className="text-[10px] text-blue-400 font-mono flex items-center gap-1"
+                className="text-[10px] text-blue-400 font-mono flex items-center gap-1 cursor-pointer"
               >
                 <RefreshCw className="w-3 h-3" /> Refresh
               </button>
@@ -576,7 +607,7 @@ export default function CitizenApp() {
             <div className="grid grid-cols-3 gap-1.5 bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
               <button
                 onClick={() => setHelpSubTab('shelters')}
-                className={`py-2 rounded-xl transition ${
+                className={`py-2 rounded-xl transition cursor-pointer ${
                   helpSubTab === 'shelters' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -584,7 +615,7 @@ export default function CitizenApp() {
               </button>
               <button
                 onClick={() => setHelpSubTab('hospitals')}
-                className={`py-2 rounded-xl transition ${
+                className={`py-2 rounded-xl transition cursor-pointer ${
                   helpSubTab === 'hospitals' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -592,7 +623,7 @@ export default function CitizenApp() {
               </button>
               <button
                 onClick={() => setHelpSubTab('relief')}
-                className={`py-2 rounded-xl transition ${
+                className={`py-2 rounded-xl transition cursor-pointer ${
                   helpSubTab === 'relief' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -703,7 +734,14 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== VIEW 3: GOVERNMENT ALERTS ===================== */}
+        {/* ===================== VIEW 3: OFFLINE P2P MESH & CHAT (THE CORE FEATURE) ===================== */}
+        {activeTab === 'mesh' && (
+          <div className="space-y-3 animate-fadeIn">
+            <MeshChat user={user} gpsCoords={gpsCoords} />
+          </div>
+        )}
+
+        {/* ===================== VIEW 4: GOVERNMENT ALERTS ===================== */}
         {activeTab === 'alerts' && (
           <div className="space-y-4">
             <h2 className="text-base font-black text-white flex items-center gap-2 pb-2 border-b border-slate-800">
@@ -729,7 +767,7 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== VIEW 4: AI SAFETY ASSISTANT ===================== */}
+        {/* ===================== VIEW 5: AI SAFETY ASSISTANT ===================== */}
         {activeTab === 'ai' && (
           <div className="space-y-4 flex flex-col h-[74vh]">
             <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
@@ -782,14 +820,14 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== VIEW 5: REPORT DISASTER INCIDENT ===================== */}
+        {/* ===================== VIEW 6: REPORT DISASTER INCIDENT ===================== */}
         {activeTab === 'report' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center space-x-2">
                 <button 
                   onClick={() => setActiveTab('home')}
-                  className="p-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400"
+                  className="p-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
@@ -809,7 +847,7 @@ export default function CitizenApp() {
                     setIncidentSubmitted(false);
                     setActiveTab('home');
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold mt-2"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold mt-2 cursor-pointer"
                 >
                   Return to Home
                 </button>
@@ -900,10 +938,10 @@ export default function CitizenApp() {
 
       </main>
 
-      {/* ==================== CLEAN 4-ITEM BOTTOM NAVIGATION ==================== */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#081324]/95 backdrop-blur-md border-t border-slate-800/80 px-2 py-2 flex items-center justify-around z-50 shadow-2xl">
+      {/* ==================== 5-ITEM BOTTOM NAVIGATION (OFFLINE MESH IN CENTER) ==================== */}
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#081324]/95 backdrop-blur-md border-t border-slate-800/80 px-1 py-1.5 flex items-center justify-around z-50 shadow-2xl">
         
-        {/* 1. Home (SOS + Action Tiles) */}
+        {/* 1. Home */}
         <button
           onClick={() => setActiveTab('home')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
@@ -911,7 +949,7 @@ export default function CitizenApp() {
           }`}
         >
           <Home className="w-5 h-5" />
-          <span className="text-[10px]">Home</span>
+          <span className="text-[9px]">Home</span>
         </button>
 
         {/* 2. Nearby Help */}
@@ -922,21 +960,40 @@ export default function CitizenApp() {
           }`}
         >
           <Navigation className="w-5 h-5" />
-          <span className="text-[10px]">Nearby Help</span>
+          <span className="text-[9px]">Nearby Help</span>
         </button>
 
-        {/* 3. Official Alerts */}
+        {/* 3. ⭐ OFFLINE MESH (THE CORE PROMINENT CENTER OPTION) */}
+        <button
+          onClick={() => setActiveTab('mesh')}
+          className={`flex flex-col items-center relative -top-3 cursor-pointer group`}
+        >
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all border-2 ${
+            activeTab === 'mesh'
+              ? 'bg-gradient-to-tr from-amber-500 to-rose-600 text-white border-amber-300 shadow-rose-600/50 scale-105 ring-2 ring-amber-500/40 animate-pulse'
+              : 'bg-slate-900 text-amber-400 border-amber-500/50 hover:border-amber-400 shadow-amber-500/20'
+          }`}>
+            <Radio className="w-6 h-6 animate-pulse" />
+          </div>
+          <span className={`text-[10px] mt-0.5 font-bold font-mono tracking-tight ${
+            activeTab === 'mesh' ? 'text-amber-300' : 'text-slate-400'
+          }`}>
+            Offline Mesh
+          </span>
+        </button>
+
+        {/* 4. Official Alerts */}
         <button
           onClick={() => setActiveTab('alerts')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
             activeTab === 'alerts' ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <Radio className="w-5 h-5" />
-          <span className="text-[10px]">Alerts</span>
+          <AlertTriangle className="w-5 h-5" />
+          <span className="text-[9px]">Alerts</span>
         </button>
 
-        {/* 4. AI Safety Guide */}
+        {/* 5. AI Safety Guide */}
         <button
           onClick={() => setActiveTab('ai')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
@@ -944,7 +1001,7 @@ export default function CitizenApp() {
           }`}
         >
           <MessageSquare className="w-5 h-5" />
-          <span className="text-[10px]">AI Guide</span>
+          <span className="text-[9px]">AI Guide</span>
         </button>
 
       </nav>
