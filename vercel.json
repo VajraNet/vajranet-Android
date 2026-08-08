@@ -1,4 +1,5 @@
 {
+  "outputDirectory": "android/app/src/main/assets/public",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
