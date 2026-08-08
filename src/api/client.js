@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://vajranet-backend.onrender.com/api/v1';
 
 export async function apiFetch(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -30,7 +30,7 @@ export async function apiFetch(endpoint, options = {}) {
     }
     return resJson;
   } catch (error) {
-    console.warn(`[VajraNet Citizen Mobile API] Offline / fallback for ${url}:`, error.message);
+    console.warn(`[VajraNet Citizen Mobile API] Offline fallback for ${url}:`, error.message);
     throw error;
   }
 }
