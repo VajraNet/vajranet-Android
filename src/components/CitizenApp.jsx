@@ -17,12 +17,17 @@ import {
   MessageSquare,
   Navigation,
   RefreshCw,
-  Info
+  Info,
+  LogOut,
+  User,
+  Share2
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
+import LoginPage from './LoginPage';
+import MeshChat from './MeshChat';
 
 export default function CitizenApp() {
-  const [activeTab, setActiveTab] = useState('sos'); // 'sos' | 'report' | 'nearby' | 'alerts' | 'ai'
+  const [activeTab, setActiveTab] = useState('sos'); // 'sos' | 'mesh' | 'report' | 'nearby' | 'alerts' | 'ai'
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [gpsCoords, setGpsCoords] = useState({ lat: 28.6139, lon: 77.2090, accuracy: 'High (4m)' });
   const [sosSent, setSosSent] = useState(false);
@@ -30,6 +35,16 @@ export default function CitizenApp() {
   const [sosType, setSosType] = useState('CRITICAL');
   const [sosNotes, setSosNotes] = useState('');
   const [assignedSosId, setAssignedSosId] = useState(null);
+
+  // User state (Persisted in localStorage)
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vajranet_citizen_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Incident reporting state
   const [incidentTitle, setIncidentTitle] = useState('');
@@ -81,6 +96,33 @@ export default function CitizenApp() {
     };
   }, []);
 
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    try {
+      localStorage.setItem('vajranet_citizen_user', JSON.stringify(userData));
+    } catch (err) {
+      console.error('Failed to save user in localStorage', err);
+    }
+  };
+
+  const handleSkip = (guestData) => {
+    setUser(guestData);
+    try {
+      localStorage.setItem('vajranet_citizen_user', JSON.stringify(guestData));
+    } catch (err) {
+      console.error('Failed to save guest user in localStorage', err);
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    try {
+      localStorage.removeItem('vajranet_citizen_user');
+    } catch (err) {
+      console.error('Failed to remove user from localStorage', err);
+    }
+  };
+
   const loadResources = async () => {
     try {
       const sh = await apiFetch(`/resources/shelters?latitude=${gpsCoords.lat}&longitude=${gpsCoords.lon}`);
@@ -129,7 +171,9 @@ export default function CitizenApp() {
       latitude: gpsCoords.lat,
       longitude: gpsCoords.lon,
       severity: sosType,
-      message_id: `SOS-CITIZEN-${Date.now()}`
+      message_id: `SOS-CITIZEN-${Date.now()}`,
+      user_name: user?.name || 'Guest Citizen',
+      user_phone: user?.phone || 'N/A'
     };
 
     try {
@@ -159,7 +203,8 @@ export default function CitizenApp() {
       latitude: gpsCoords.lat,
       longitude: gpsCoords.lon,
       severity: incidentSeverity,
-      media_urls: []
+      media_urls: [],
+      reported_by: user?.name || 'Guest Citizen'
     };
 
     try {
@@ -202,11 +247,16 @@ export default function CitizenApp() {
     }
   };
 
+  // IF NOT AUTHENTICATED OR SKIPPED, RENDER LOGIN SCREEN
+  if (!user) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} onSkip={handleSkip} />;
+  }
+
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[#070e1c] text-white flex flex-col font-sans selection:bg-rose-600">
       
       {/* Mobile Top App Bar */}
-      <header className="sticky top-0 z-50 bg-[#081324]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 shadow-md">
+      <header className="sticky top-0 z-50 bg-[#081324]/95 backdrop-blur-md border-b border-slate-800/80 px-3.5 py-2.5 shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center shadow-lg shadow-rose-600/30">
@@ -223,12 +273,21 @@ export default function CitizenApp() {
             </div>
           </div>
 
-          {/* Network & GPS Badge */}
+          {/* User Badge & Logout + GPS Badge */}
           <div className="flex items-center space-x-1.5">
             <div className="flex items-center space-x-1 bg-slate-900/90 px-2 py-1 rounded-lg border border-slate-800 text-[10px] font-mono">
-              <MapPin className="w-3 h-3 text-rose-400" />
-              <span className="text-slate-300">{gpsCoords.lat}, {gpsCoords.lon}</span>
+              <span className={`w-2 h-2 rounded-full ${user.isGuest ? 'bg-amber-400' : 'bg-emerald-400'} animate-ping`}></span>
+              <span className="text-slate-300 max-w-[75px] truncate">{user.name}</span>
+              <button 
+                onClick={handleLogout} 
+                title="Return to Login Page"
+                className="ml-1 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 font-bold border border-slate-700 transition-colors flex items-center space-x-1 cursor-pointer"
+              >
+                <LogOut className="w-3 h-3" />
+                <span className="text-[9px]">Login</span>
+              </button>
             </div>
+
             <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-[10px] font-mono font-bold ${
               isOnline ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80' : 'bg-amber-950/80 text-amber-300 border-amber-800/80'
             }`}>
@@ -240,7 +299,7 @@ export default function CitizenApp() {
       </header>
 
       {/* Main Body Content */}
-      <main className="flex-1 p-4 pb-24 overflow-y-auto space-y-4">
+      <main className="flex-1 p-3.5 pb-20 overflow-y-auto space-y-4 no-scrollbar">
         
         {/* ===================== TAB 1: ONE-TAP SOS ===================== */}
         {activeTab === 'sos' && (
@@ -347,16 +406,16 @@ export default function CitizenApp() {
                 </div>
                 <div className="bg-slate-950/80 rounded-xl p-3 text-left space-y-1.5 text-xs text-slate-300 font-mono">
                   <div className="flex justify-between">
+                    <span className="text-slate-500">Citizen:</span>
+                    <span>{user?.name} ({user?.phone || 'Guest'})</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-slate-500">Coordinates:</span>
                     <span>{gpsCoords.lat}, {gpsCoords.lon}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Status:</span>
                     <span className="text-amber-400 font-bold">DISPATCHED / EN ROUTE</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Channel:</span>
-                    <span>{isOnline ? 'FastAPI Gateway' : 'Mesh Broadcast'}</span>
                   </div>
                 </div>
                 <button
@@ -399,7 +458,12 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== TAB 2: INCIDENT REPORTER ===================== */}
+        {/* ===================== TAB 2: OFF-GRID P2P MESHCHAT ===================== */}
+        {activeTab === 'mesh' && (
+          <MeshChat user={user} gpsCoords={gpsCoords} />
+        )}
+
+        {/* ===================== TAB 3: INCIDENT REPORTER ===================== */}
         {activeTab === 'report' && (
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
             <div>
@@ -487,7 +551,7 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== TAB 3: NEARBY LIFELINE RESOURCES ===================== */}
+        {/* ===================== TAB 4: NEARBY LIFELINE RESOURCES ===================== */}
         {activeTab === 'nearby' && (
           <div className="space-y-3">
             
@@ -597,7 +661,7 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== TAB 4: OFFICIAL ANNOUNCEMENTS ===================== */}
+        {/* ===================== TAB 5: OFFICIAL ANNOUNCEMENTS ===================== */}
         {activeTab === 'alerts' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -624,7 +688,7 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== TAB 5: AI SURVIVAL GUIDE ===================== */}
+        {/* ===================== TAB 6: AI SURVIVAL GUIDE ===================== */}
         {activeTab === 'ai' && (
           <div className="flex flex-col h-[calc(100vh-180px)] bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl">
             <div className="flex items-center space-x-2 pb-3 border-b border-slate-800">
@@ -680,10 +744,10 @@ export default function CitizenApp() {
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#081324]/95 backdrop-blur-md border-t border-slate-800/80 px-2 py-2 flex items-center justify-around z-50 shadow-2xl">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#081324]/95 backdrop-blur-md border-t border-slate-800/80 px-1.5 py-2 flex items-center justify-around z-50 shadow-2xl">
         <button
           onClick={() => setActiveTab('sos')}
-          className={`flex flex-col items-center space-y-1 p-1.5 rounded-xl transition-colors ${
+          className={`flex flex-col items-center space-y-1 p-1 rounded-xl transition-colors ${
             activeTab === 'sos' ? 'text-rose-400 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -692,8 +756,18 @@ export default function CitizenApp() {
         </button>
 
         <button
+          onClick={() => setActiveTab('mesh')}
+          className={`flex flex-col items-center space-y-1 p-1 rounded-xl transition-colors ${
+            activeTab === 'mesh' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Radio className="w-5 h-5" />
+          <span className="text-[10px]">MeshChat</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('report')}
-          className={`flex flex-col items-center space-y-1 p-1.5 rounded-xl transition-colors ${
+          className={`flex flex-col items-center space-y-1 p-1 rounded-xl transition-colors ${
             activeTab === 'report' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -703,7 +777,7 @@ export default function CitizenApp() {
 
         <button
           onClick={() => setActiveTab('nearby')}
-          className={`flex flex-col items-center space-y-1 p-1.5 rounded-xl transition-colors ${
+          className={`flex flex-col items-center space-y-1 p-1 rounded-xl transition-colors ${
             activeTab === 'nearby' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -713,7 +787,7 @@ export default function CitizenApp() {
 
         <button
           onClick={() => setActiveTab('alerts')}
-          className={`flex flex-col items-center space-y-1 p-1.5 rounded-xl transition-colors ${
+          className={`flex flex-col items-center space-y-1 p-1 rounded-xl transition-colors ${
             activeTab === 'alerts' ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -723,7 +797,7 @@ export default function CitizenApp() {
 
         <button
           onClick={() => setActiveTab('ai')}
-          className={`flex flex-col items-center space-y-1 p-1.5 rounded-xl transition-colors ${
+          className={`flex flex-col items-center space-y-1 p-1 rounded-xl transition-colors ${
             activeTab === 'ai' ? 'text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
