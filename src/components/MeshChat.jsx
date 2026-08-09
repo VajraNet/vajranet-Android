@@ -1,148 +1,128 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Radio, 
+  RefreshCw, 
+  AlertTriangle, 
   Send, 
   Users, 
-  AlertTriangle, 
   ShieldCheck, 
   MapPin, 
   CheckCircle2, 
   HeartPulse, 
-  Waves, 
+  Wifi, 
+  WifiOff, 
+  MessageSquare, 
   X, 
-  Paperclip, 
-  Camera, 
-  Mic, 
-  CheckCheck, 
-  Shield, 
-  HelpCircle, 
-  RefreshCw,
-  Search,
-  MessageSquare,
-  Sparkles
+  Sparkles,
+  ChevronRight,
+  Shield,
+  Activity,
+  User
 } from 'lucide-react';
 
-export default function MeshChat({ user, gpsCoords }) {
-  const [activeChannel, setActiveChannel] = useState('general'); // 'sos' | 'general' | 'relief' | 'responders'
-  const [inputText, setInputText] = useState('');
-  const [showPeerModal, setShowPeerModal] = useState(false);
-  const [attachGps, setAttachGps] = useState(true);
-  const [msgPriority, setMsgPriority] = useState('NORMAL'); // 'NORMAL' | 'URGENT' | 'CRITICAL'
-  const [attachedImage, setAttachedImage] = useState(null);
-  const [isRelaying, setIsRelaying] = useState(false);
-
-  const messagesEndRef = useRef(null);
-
-  // Simulated peer nodes in local 500m radius
-  const peerNodes = [
-    { id: 'NODE-7X9A', name: 'NDRF Rescue Unit 4', role: 'NDRF Volunteer', distance: '120m', hops: 1, signal: '98%', battery: '92%', status: 'Active' },
-    { id: 'NODE-3B12', name: 'Rohan Sharma', role: 'Citizen Peer', distance: '210m', hops: 1, signal: '85%', battery: '76%', status: 'Active' },
-    { id: 'NODE-9K44', name: 'Sector 4 Relief Depot', role: 'Relief Coordinator', distance: '340m', hops: 2, signal: '72%', battery: '100%', status: 'Active' },
-    { id: 'NODE-1M08', name: 'Dr. Priya V.', role: 'Medical Doctor', distance: '410m', hops: 2, signal: '64%', battery: '55%', status: 'Active' },
-    { id: 'NODE-5F77', name: 'Amit Verma', role: 'Citizen Peer', distance: '480m', hops: 3, signal: '50%', battery: '68%', status: 'Active' }
-  ];
-
-  // Seed message streams per channel
-  const [messages, setMessages] = useState({
-    general: [
-      {
-        id: 'msg-g1',
-        sender: 'Sector 4 Relief Depot',
-        nodeId: 'NODE-9K44',
-        role: 'Relief Coordinator',
-        text: 'P2P Mesh Network online across Sector 3 & 4. Cellular towers disabled due to flood. Keep Wi-Fi & Bluetooth ON to bridge packets.',
-        time: '10:42 AM',
-        hops: 2,
-        isNotice: true,
-        isVerified: true,
-        isMe: false
-      },
-      {
-        id: 'msg-g2',
-        sender: 'Dr. Priya V.',
-        nodeId: 'NODE-1M08',
-        role: 'Medical Doctor',
-        text: 'Temporary medical triage tent established near Stadium Gate 2. Clean bandages, tetanus, and ORS packets available.',
-        time: '10:45 AM',
-        hops: 2,
-        isVerified: true,
-        isMe: false
-      },
-      {
-        id: 'msg-g3',
-        sender: 'Rohan Sharma',
-        nodeId: 'NODE-3B12',
-        role: 'Citizen Peer',
-        text: 'Road near Sector 3 Metro pillar 42 is submerged in 3ft water. Small vehicles should avoid!',
-        time: '10:48 AM',
-        hops: 1,
-        lat: 28.6142,
-        lon: 77.2095,
-        isMe: false
+export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
+  // 1. Persistent Unique Device ID (e.g., VAJRA-32647)
+  const [myDeviceId] = useState(() => {
+    try {
+      let savedId = localStorage.getItem('vajranet_device_id');
+      if (!savedId) {
+        const randNum = Math.floor(10000 + Math.random() * 900000);
+        savedId = `VAJRA-${randNum}`;
+        localStorage.setItem('vajranet_device_id', savedId);
       }
-    ],
-    sos: [
-      {
-        id: 'msg-s1',
-        sender: 'Rohan Sharma',
-        nodeId: 'NODE-3B12',
-        role: 'Citizen Peer',
-        text: 'CRITICAL SOS: 3 adults & 1 child stranded on roof near Sector 4 Water Tank. Rising flood water!',
-        time: '10:40 AM',
-        hops: 1,
-        lat: 28.6148,
-        lon: 77.2088,
-        priority: 'CRITICAL',
-        isMe: false
-      },
-      {
-        id: 'msg-s2',
-        sender: 'NDRF Rescue Unit 4',
-        nodeId: 'NODE-7X9A',
-        role: 'NDRF Volunteer',
-        text: 'Copied location tag. Rescue boat Alpha dispatched from Station Road, ETA 6 minutes.',
-        time: '10:41 AM',
-        hops: 1,
-        isVerified: true,
-        isMe: false
-      }
-    ],
-    relief: [
-      {
-        id: 'msg-r1',
-        sender: 'Sector 4 Relief Depot',
-        nodeId: 'NODE-9K44',
-        role: 'Relief Coordinator',
-        text: 'Clean drinking water tanker arrived at Block B Community Hall. Bring clean storage containers.',
-        time: '10:30 AM',
-        hops: 1,
-        isVerified: true,
-        isMe: false
-      }
-    ],
-    responders: [
-      {
-        id: 'msg-rp1',
-        sender: 'NDRF Rescue Unit 4',
-        nodeId: 'NODE-7X9A',
-        role: 'NDRF Volunteer',
-        text: 'Patrol Team 2 request: Reports of fallen electrical cables near Sector 4 East Gate?',
-        time: '10:25 AM',
-        hops: 1,
-        isVerified: true,
-        isMe: false
-      }
-    ]
+      return savedId;
+    } catch {
+      return `VAJRA-${Math.floor(10000 + Math.random() * 900000)}`;
+    }
   });
 
-  // Auto scroll to bottom of chat
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isScanning, setIsScanning] = useState(false);
+  const [selectedPeer, setSelectedPeer] = useState(null);
+  const [peerMessageText, setPeerMessageText] = useState('');
+  const [peerChatLogs, setPeerChatLogs] = useState({});
+  const [sosSentBanner, setSosSentBanner] = useState(false);
+
+  // 2. Discovered Peer Devices Pool in surrounding area
+  const [allDiscoveredDevices, setAllDiscoveredDevices] = useState([
+    {
+      id: 'VAJRA-71932',
+      name: 'NDRF Rescue Unit 4',
+      role: 'NDRF Volunteer',
+      hops: 1,
+      signalDbm: -54,
+      battery: 92,
+      lastSeen: '1m ago',
+      distance: '120m',
+      isVerified: true
+    },
+    {
+      id: 'VAJRA-44821',
+      name: 'Rohan Sharma',
+      role: 'Citizen Peer',
+      hops: 1,
+      signalDbm: -68,
+      battery: 76,
+      lastSeen: 'Just now',
+      distance: '210m',
+      isVerified: false
+    },
+    {
+      id: 'VAJRA-91204',
+      name: 'Sector 4 Relief Depot',
+      role: 'Relief Coordinator',
+      hops: 2,
+      signalDbm: -78,
+      battery: 100,
+      lastSeen: '3m ago',
+      distance: '340m',
+      isVerified: true
+    },
+    {
+      id: 'VAJRA-18542',
+      name: 'Dr. Priya V.',
+      role: 'Medical Doctor',
+      hops: 2,
+      signalDbm: -82,
+      battery: 58,
+      lastSeen: '2m ago',
+      distance: '410m',
+      isVerified: true
+    },
+    {
+      id: 'VAJRA-62391',
+      name: 'Amit Verma',
+      role: 'Citizen Peer',
+      hops: 3,
+      signalDbm: -89,
+      battery: 64,
+      lastSeen: '5m ago',
+      distance: '480m',
+      isVerified: false
+    },
+    {
+      id: 'VAJRA-83190',
+      name: 'Civil Lines Relay Node',
+      role: 'Mesh Bridge',
+      hops: 4,
+      signalDbm: -95,
+      battery: 88,
+      lastSeen: '4m ago',
+      distance: '650m',
+      isVerified: true
+    }
+  ]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, activeChannel]);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Live P2P Broadcast Channel across browser tabs / local network nodes
   useEffect(() => {
@@ -150,502 +130,377 @@ export default function MeshChat({ user, gpsCoords }) {
     try {
       channel = new BroadcastChannel('vajranet_p2p_mesh_bus');
       channel.onmessage = (event) => {
-        const { channel: targetCh, message: incomingMsg } = event.data || {};
-        if (targetCh && incomingMsg) {
-          // Avoid self echoes
-          if (incomingMsg.nodeId === `NODE-${user?.phone || 'LOCAL'}`) return;
+        const { senderId, targetId, message, senderName } = event.data || {};
+        if (senderId && senderId !== myDeviceId) {
+          if (!targetId || targetId === myDeviceId) {
+            setPeerChatLogs((prev) => ({
+              ...prev,
+              [senderId]: [
+                ...(prev[senderId] || []),
+                {
+                  id: `msg-${Date.now()}`,
+                  sender: senderName || senderId,
+                  text: message,
+                  time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  isMe: false,
+                },
+              ],
+            }));
+          }
 
-          setMessages((prev) => ({
-            ...prev,
-            [targetCh]: [
-              ...(prev[targetCh] || []),
+          setAllDiscoveredDevices((prev) => {
+            if (prev.some((d) => d.id === senderId)) return prev;
+            return [
               {
-                ...incomingMsg,
-                isMe: false,
-                hops: (incomingMsg.hops || 0) + 1,
+                id: senderId,
+                name: senderName || 'Nearby Citizen Node',
+                role: 'Citizen Peer',
+                hops: 1,
+                signalDbm: -65,
+                battery: 85,
+                lastSeen: 'Just now',
+                distance: '150m',
+                isVerified: false,
               },
-            ],
-          }));
+              ...prev,
+            ];
+          });
         }
       };
     } catch (e) {
-      console.warn('BroadcastChannel not supported in this environment', e);
+      console.warn('BroadcastChannel not supported', e);
     }
-
     return () => {
       if (channel) channel.close();
     };
-  }, [user]);
+  }, [myDeviceId]);
 
-  const getCurrentTimeString = () => {
-    const d = new Date();
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Adaptive Multi-Hop Logic
+  const totalCount = allDiscoveredDevices.length;
+  const isDenseArea = totalCount > 5;
+  const visibleDevices = isDenseArea
+    ? allDiscoveredDevices.filter((dev) => dev.hops <= 3)
+    : allDiscoveredDevices;
+
+  // Radar Refresh
+  const handleScanRadar = () => {
+    setIsScanning(true);
+    setTimeout(() => {
+      setIsScanning(false);
+      const newPeerId = `VAJRA-${Math.floor(10000 + Math.random() * 90000)}`;
+      if (!allDiscoveredDevices.some((d) => d.id === newPeerId)) {
+        setAllDiscoveredDevices((prev) => [
+          {
+            id: newPeerId,
+            name: 'Field Volunteer Relay',
+            role: 'Local Responder',
+            hops: 1,
+            signalDbm: -60,
+            battery: 90,
+            lastSeen: 'Just now',
+            distance: '180m',
+            isVerified: true,
+          },
+          ...prev,
+        ]);
+      }
+    }, 1200);
   };
 
-  const broadcastMeshPacket = (channelName, messageObj) => {
+  // Mesh SOS
+  const handleTriggerMeshSOS = () => {
+    if (onTriggerSOS) {
+      onTriggerSOS();
+    }
+    setSosSentBanner(true);
+    setTimeout(() => setSosSentBanner(false), 5000);
+
     try {
       const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
-      bc.postMessage({ channel: channelName, message: messageObj });
+      bc.postMessage({
+        senderId: myDeviceId,
+        senderName: user?.name || 'Citizen',
+        message: `🚨 CRITICAL SOS BEACON BROADCAST: Coordinates (${gpsCoords.lat}, ${gpsCoords.lon})`,
+      });
       setTimeout(() => bc.close(), 100);
     } catch (e) {
-      console.warn('P2P Mesh broadcast failed', e);
-    }
-
-    // If critical/SOS, also buffer into DTN offline queue for gateway uplink
-    if (channelName === 'sos' || messageObj.priority === 'CRITICAL') {
-      try {
-        const currentQ = JSON.parse(localStorage.getItem('vajranet_offline_queue') || '[]');
-        const offlineEvent = {
-          message_id: messageObj.id,
-          type: 'SOS',
-          created_at: new Date().toISOString(),
-          origin_device_id: messageObj.nodeId,
-          payload: {
-            message: messageObj.text,
-            latitude: messageObj.lat || 28.6139,
-            longitude: messageObj.lon || 77.2090,
-            severity: messageObj.priority || 'CRITICAL',
-            user_name: messageObj.sender,
-          }
-        };
-        localStorage.setItem('vajranet_offline_queue', JSON.stringify([...currentQ, offlineEvent]));
-      } catch (err) {
-        console.warn('Failed to buffer to DTN queue', err);
-      }
+      console.warn('Broadcast failed', e);
     }
   };
 
-  const handleSendMessage = (e) => {
+  // Send Direct Message
+  const handleSendPeerMessage = (e) => {
     e.preventDefault();
-    if (!inputText.trim() && !attachedImage) return;
+    if (!peerMessageText.trim() || !selectedPeer) return;
 
-    const newMsgText = inputText.trim();
     const newMsg = {
-      id: `msg-user-${Date.now()}`,
-      sender: user?.name || 'Guest Citizen',
-      nodeId: `NODE-${user?.phone || 'LOCAL'}`,
-      role: user?.isGuest ? 'Guest Peer' : 'Registered Citizen',
-      text: newMsgText,
-      time: getCurrentTimeString(),
-      hops: 0,
-      lat: attachGps ? gpsCoords.lat : null,
-      lon: attachGps ? gpsCoords.lon : null,
-      priority: msgPriority,
-      image: attachedImage,
+      id: `msg-${Date.now()}`,
+      sender: user?.name || 'You',
+      text: peerMessageText.trim(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMe: true,
-      status: 'Relayed'
     };
 
-    setMessages(prev => ({
+    setPeerChatLogs((prev) => ({
       ...prev,
-      [activeChannel]: [...(prev[activeChannel] || []), newMsg]
+      [selectedPeer.id]: [...(prev[selectedPeer.id] || []), newMsg],
     }));
 
-    // Broadcast across live P2P mesh bus
-    broadcastMeshPacket(activeChannel, newMsg);
+    try {
+      const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
+      bc.postMessage({
+        senderId: myDeviceId,
+        targetId: selectedPeer.id,
+        senderName: user?.name || 'Citizen',
+        message: peerMessageText.trim(),
+      });
+      setTimeout(() => bc.close(), 100);
+    } catch (e) {
+      console.warn('P2P message failed', e);
+    }
 
-    setInputText('');
-    setAttachedImage(null);
-    setMsgPriority('NORMAL');
-
-    // Simulate incoming P2P mesh relay reply after 2 seconds
-    setIsRelaying(true);
-    setTimeout(() => {
-      setIsRelaying(false);
-      if (activeChannel === 'sos' || msgPriority === 'CRITICAL') {
-        const replyMsg = {
-          id: `msg-reply-${Date.now()}`,
-          sender: 'NDRF Rescue Unit 4',
-          nodeId: 'NODE-7X9A',
-          role: 'NDRF Volunteer',
-          text: `Acknowledged SOS packet from ${user?.name || 'Citizen'} (${gpsCoords.lat}, ${gpsCoords.lon}). Logged into disaster triage queue.`,
-          time: getCurrentTimeString(),
-          hops: 1,
-          isVerified: true,
-          isMe: false
-        };
-        setMessages(prev => ({
-          ...prev,
-          [activeChannel]: [...(prev[activeChannel] || []), replyMsg]
-        }));
-      }
-    }, 2200);
-  };
-
-  const handleQuickStatusBroadcast = (statusText, priorityLevel = 'NORMAL') => {
-    const newMsg = {
-      id: `msg-quick-${Date.now()}`,
-      sender: user?.name || 'Guest Citizen',
-      nodeId: `NODE-${user?.phone || 'LOCAL'}`,
-      role: 'Quick Status Broadcast',
-      text: statusText,
-      time: getCurrentTimeString(),
-      hops: 0,
-      lat: gpsCoords.lat,
-      lon: gpsCoords.lon,
-      priority: priorityLevel,
-      isMe: true,
-      status: 'Relayed'
-    };
-
-    setMessages(prev => ({
-      ...prev,
-      [activeChannel]: [...(prev[activeChannel] || []), newMsg]
-    }));
-
-    // Broadcast across live P2P mesh bus
-    broadcastMeshPacket(activeChannel, newMsg);
-  };
-
-  const handleSimulatePhotoAttachment = () => {
-    setAttachedImage('Hazard Photo (Submerged Street)');
-  };
-
-  const getRoleBadgeColor = (role) => {
-    if (role?.includes('NDRF')) return 'bg-rose-950 text-rose-300 border-rose-800';
-    if (role?.includes('Doctor') || role?.includes('Medical')) return 'bg-blue-950 text-blue-300 border-blue-800';
-    if (role?.includes('Relief')) return 'bg-amber-950 text-amber-300 border-amber-800';
-    return 'bg-emerald-950 text-emerald-300 border-emerald-800';
+    setPeerMessageText('');
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] bg-slate-900/90 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+    <div className="space-y-4 font-sans select-none pb-4">
       
-      {/* ==================== 1. CHAT HEADER & TELEMETRY ==================== */}
-      <div className="bg-[#081324] border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-600 flex items-center justify-center shadow-lg shadow-emerald-600/30">
-              <Radio className="w-5 h-5 text-white animate-pulse" />
+      {/* ========================================================================= */}
+      {/* 1. UPPER SECTION (SMALLER TAB): CONTROL & CONNECTIVITY PANEL (WHITE CARD) */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-3.5">
+        
+        {/* Device ID + Network Indicator Row */}
+        <div className="flex items-center justify-between gap-2">
+          {/* My Device ID Badge */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#0B2545] border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shadow-md">
+              <Radio className="w-5 h-5" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#081324] animate-ping"></span>
+            <div>
+              <span className="text-[10px] text-slate-500 font-mono font-bold block">MY VAJRANET NODE</span>
+              <h3 className="text-sm font-black text-slate-900 font-mono tracking-wider">{myDeviceId}</h3>
+            </div>
           </div>
 
+          {/* Live Connectivity Indicator Pill */}
+          <div className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center gap-1.5 border shadow-sm ${
+            isOnline
+              ? 'bg-emerald-50 text-[#059669] border-emerald-300'
+              : 'bg-amber-50 text-amber-700 border-amber-300'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-[#059669]' : 'bg-amber-500 animate-pulse'}`}></span>
+            <span>{isOnline ? '🟢 Online Cloud Relay' : '🟠 Offline P2P Mesh'}</span>
+          </div>
+        </div>
+
+        {/* Status Description Banner */}
+        <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between font-mono">
+          <span className="flex items-center gap-1.5">
+            <Activity className="w-3.5 h-3.5 text-[#0077B6]" />
+            <span>
+              {isOnline
+                ? 'Direct Cloud Relay: Syncs to Govt, Volunteer & Citizen feeds.'
+                : 'P2P Mesh Active: Multi-hop relay until reaching a gateway.'}
+            </span>
+          </span>
+        </div>
+
+        {/* SOS Confirmation Alert */}
+        {sosSentBanner && (
+          <div className="bg-rose-50 border border-rose-300 rounded-2xl p-3 text-xs text-rose-800 flex items-center gap-2 animate-fadeIn font-bold">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 animate-bounce" />
+            <span>🚨 SOS Beacon Transmitted across all 3 feeds!</span>
+          </div>
+        )}
+
+        {/* Controls Row: Scan Radar + Mesh SOS Button */}
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          {/* Refresh / Scan Radar */}
+          <button
+            onClick={handleScanRadar}
+            disabled={isScanning}
+            className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-2xl text-xs font-bold text-slate-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-[#0077B6] ${isScanning ? 'animate-spin' : ''}`} />
+            <span>{isScanning ? 'Scanning...' : 'Scan Radar'}</span>
+          </button>
+
+          {/* Mesh SOS Broadcast Button */}
+          <button
+            onClick={handleTriggerMeshSOS}
+            className="py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-black tracking-wider transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer uppercase active:scale-95"
+          >
+            <AlertTriangle className="w-3.5 h-3.5 text-white" />
+            <span>Mesh SOS</span>
+          </button>
+        </div>
+
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. LOWER SECTION (LARGER TAB): NEARBY DISCOVERED DEVICES (WHITE CARD)     */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-3.5">
+        
+        {/* Section Header with Dynamic Adaptive Hop Policy Badge */}
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
           <div>
-            <div className="flex items-center space-x-2">
-              <h2 className="text-sm font-black tracking-wider text-white">
-                #{activeChannel === 'general' ? 'general-mesh' : activeChannel === 'sos' ? 'sos-broadcast' : activeChannel === 'relief' ? 'relief-coord' : 'first-responders'}
-              </h2>
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-mono font-bold border border-emerald-800/80">
-                P2P ENCRYPTED
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span>📡 Available Nearby Devices</span>
+              <span className="text-[10px] bg-blue-100 text-[#0077B6] border border-blue-300 px-2 py-0.2 rounded-full font-mono font-bold">
+                {visibleDevices.length} In Range
               </span>
-            </div>
-            <p className="text-[10px] text-slate-400 font-mono flex items-center space-x-1.5 mt-0.5">
-              <span>500m Local Mesh</span>
-              <span>•</span>
-              <span className="text-emerald-400 font-bold">5 Active Relay Nodes</span>
+            </h2>
+            <p className="text-[10px] text-slate-500 mt-0.5">
+              Connect peer-to-peer to request local assistance, water, or relay an SOS.
             </p>
           </div>
-        </div>
 
-        <button
-          onClick={() => setShowPeerModal(true)}
-          className="flex items-center space-x-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800/90 px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-emerald-400 transition-all shadow cursor-pointer active:scale-95"
-        >
-          <Users className="w-4 h-4 text-emerald-400" />
-          <span>{peerNodes.length} Peers</span>
-        </button>
-      </div>
-
-      {/* ==================== 2. CHANNEL SELECTOR TABS ==================== */}
-      <div className="flex bg-slate-950 border-b border-slate-800 px-2 py-2 overflow-x-auto no-scrollbar gap-1.5 text-xs font-bold">
-        <button
-          onClick={() => setActiveChannel('general')}
-          className={`px-3.5 py-2 rounded-xl flex items-center space-x-1.5 whitespace-nowrap transition-all cursor-pointer ${
-            activeChannel === 'general' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-          }`}
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span>#general-mesh</span>
-        </button>
-
-        <button
-          onClick={() => setActiveChannel('sos')}
-          className={`px-3.5 py-2 rounded-xl flex items-center space-x-1.5 whitespace-nowrap transition-all cursor-pointer ${
-            activeChannel === 'sos' ? 'bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-          }`}
-        >
-          <AlertTriangle className="w-3.5 h-3.5 text-rose-200" />
-          <span>#sos-broadcast</span>
-        </button>
-
-        <button
-          onClick={() => setActiveChannel('relief')}
-          className={`px-3.5 py-2 rounded-xl flex items-center space-x-1.5 whitespace-nowrap transition-all cursor-pointer ${
-            activeChannel === 'relief' ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-          }`}
-        >
-          <Waves className="w-3.5 h-3.5" />
-          <span>#relief-coord</span>
-        </button>
-
-        <button
-          onClick={() => setActiveChannel('responders')}
-          className={`px-3.5 py-2 rounded-xl flex items-center space-x-1.5 whitespace-nowrap transition-all cursor-pointer ${
-            activeChannel === 'responders' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-          }`}
-        >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>#first-responders</span>
-        </button>
-      </div>
-
-      {/* ==================== 3. QUICK 1-TAP STATUS BROADCAST CHIPS ==================== */}
-      <div className="bg-[#091427]/80 px-3 py-2 border-b border-slate-800/60 overflow-x-auto flex items-center space-x-2 no-scrollbar">
-        <span className="text-[9px] text-slate-400 font-mono uppercase font-bold flex-shrink-0 flex items-center space-x-1">
-          <Sparkles className="w-3 h-3 text-amber-400" />
-          <span>1-Tap Status:</span>
-        </span>
-
-        <button
-          type="button"
-          onClick={() => handleQuickStatusBroadcast('STATUS UPDATE: I am Safe & located on high ground.')}
-          className="bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-200 text-[10px] px-2.5 py-1 rounded-xl font-bold whitespace-nowrap flex items-center space-x-1 cursor-pointer transition-colors shadow-sm"
-        >
-          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-          <span>🟢 I am Safe</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleQuickStatusBroadcast('NEED SUPPLIES: Urgent clean drinking water required at this location.')}
-          className="bg-blue-950/80 hover:bg-blue-900 border border-blue-700/80 text-blue-200 text-[10px] px-2.5 py-1 rounded-xl font-bold whitespace-nowrap flex items-center space-x-1 cursor-pointer transition-colors shadow-sm"
-        >
-          <Waves className="w-3 h-3 text-blue-400" />
-          <span>💧 Need Water</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleQuickStatusBroadcast('EMERGENCY SOS: Medical triage & first aid urgently needed!', 'CRITICAL')}
-          className="bg-rose-950/80 hover:bg-rose-900 border border-rose-700/80 text-rose-200 text-[10px] px-2.5 py-1 rounded-xl font-bold whitespace-nowrap flex items-center space-x-1 cursor-pointer transition-colors shadow-sm"
-        >
-          <HeartPulse className="w-3 h-3 text-rose-400" />
-          <span>🏥 Medical SOS</span>
-        </button>
-      </div>
-
-      {/* ==================== 4. PROPER MESSAGES STREAM FEED ==================== */}
-      <div className="flex-1 p-3.5 overflow-y-auto space-y-4 font-sans no-scrollbar">
-        
-        {/* Off-Grid Relay Notice Banner */}
-        <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3 text-center space-y-1 shadow">
-          <div className="inline-flex items-center space-x-1.5 text-xs font-bold text-amber-300">
-            <Radio className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>Off-Grid P2P Mesh Channel Active</span>
-          </div>
-          <p className="text-[10px] text-slate-400 font-mono">
-            Messages are signed & relayed hop-by-hop across local mobile Bluetooth & Wi-Fi Direct.
-          </p>
-        </div>
-
-        {(messages[activeChannel] || []).map((msg) => {
-          const isUser = msg.isMe;
-
-          return (
-            <div 
-              key={msg.id}
-              className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}
-            >
-              {/* Sender Name & Role Label (for received messages) */}
-              {!isUser && (
-                <div className="flex items-center space-x-2 px-1 text-[10px] text-slate-400 font-mono">
-                  <span className="font-bold text-slate-200">{msg.sender}</span>
-                  <span className={`px-1.5 py-0.2 rounded font-bold border ${getRoleBadgeColor(msg.role)}`}>
-                    {msg.role}
-                  </span>
-                  {msg.isVerified && (
-                    <span className="text-[9px] px-1 rounded bg-blue-900 text-blue-300 font-bold flex items-center space-x-0.5">
-                      <CheckCircle2 className="w-2.5 h-2.5" />
-                      <span>Gov</span>
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Chat Message Bubble */}
-              <div 
-                className={`max-w-[85%] rounded-3xl p-3.5 text-xs space-y-2 shadow-lg transition-all ${
-                  isUser 
-                    ? msg.priority === 'CRITICAL'
-                      ? 'bg-gradient-to-r from-rose-700 to-red-600 text-white rounded-br-none border border-rose-400/40'
-                      : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white rounded-br-none shadow-emerald-900/30'
-                    : msg.priority === 'CRITICAL' || msg.isAlert
-                    ? 'bg-rose-950/80 border border-rose-600/80 text-rose-100 rounded-bl-none'
-                    : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-bl-none'
-                }`}
-              >
-                {/* Priority / Distress Header Tag if any */}
-                {msg.priority && msg.priority !== 'NORMAL' && (
-                  <div className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-rose-950 text-rose-200 font-bold text-[9px] font-mono border border-rose-700">
-                    <AlertTriangle className="w-3 h-3 text-rose-400" />
-                    <span>PRIORITY: {msg.priority}</span>
-                  </div>
-                )}
-
-                {/* Message Body Text */}
-                <p className="text-xs leading-relaxed font-medium whitespace-pre-wrap">{msg.text}</p>
-
-                {/* Attached Image Mock */}
-                {msg.image && (
-                  <div className="bg-slate-900/90 rounded-xl p-2 border border-slate-700 flex items-center space-x-2 text-[11px] text-amber-300 font-mono">
-                    <Camera className="w-4 h-4 text-amber-400" />
-                    <span>Attached Hazard Image</span>
-                  </div>
-                )}
-
-                {/* GPS Tag & Footer Details */}
-                <div className={`flex items-center justify-between pt-1 border-t text-[9.5px] font-mono ${
-                  isUser ? 'border-teal-500/40 text-teal-100' : 'border-slate-800/80 text-slate-400'
-                }`}>
-                  {msg.lat && msg.lon ? (
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="w-3 h-3 text-rose-400 flex-shrink-0" />
-                      <span>{msg.lat}, {msg.lon}</span>
-                    </div>
-                  ) : (
-                    <span>Mesh Node: {msg.nodeId || 'NODE-P2P'}</span>
-                  )}
-
-                  <div className="flex items-center space-x-1.5 ml-2">
-                    <span>{msg.hops ? `${msg.hops} hop` : 'Direct'}</span>
-                    <span>•</span>
-                    <span>{msg.time}</span>
-                    {isUser && (
-                      <CheckCheck className="w-3.5 h-3.5 text-teal-200 inline ml-0.5" />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Live Relaying Spinner Indicator */}
-        {isRelaying && (
-          <div className="flex items-center space-x-2 text-[10px] text-emerald-400 font-mono bg-emerald-950/60 border border-emerald-800/60 p-2 rounded-xl w-max animate-pulse">
-            <Radio className="w-3 h-3 text-emerald-400 animate-spin" />
-            <span>Bridging message packet across nearby peer nodes...</span>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* ==================== 5. INPUT & ATTACHMENT CONTROLS ==================== */}
-      <form onSubmit={handleSendMessage} className="p-3 bg-[#081324] border-t border-slate-800/90 space-y-2">
-        
-        {/* Attached image indicator if any */}
-        {attachedImage && (
-          <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center justify-between text-xs text-amber-300 font-mono">
-            <span className="flex items-center space-x-1.5">
-              <Camera className="w-3.5 h-3.5 text-amber-400" />
-              <span>{attachedImage}</span>
+          {/* Adaptive Hop Rule Pill */}
+          <div className="text-right">
+            <span className={`text-[9px] px-2 py-0.5 rounded-full font-mono font-bold border ${
+              isDenseArea
+                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+            }`}>
+              {isDenseArea ? '⚡ Max 3 Hops' : '⚡ Extended (No Hop Limit)'}
             </span>
-            <button type="button" onClick={() => setAttachedImage(null)} className="text-slate-400 hover:text-white">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-
-        {/* Input Bar Options: Priority & GPS Toggle */}
-        <div className="flex items-center justify-between px-1 text-[10px] text-slate-400 font-mono">
-          <div className="flex items-center space-x-3">
-            <label className="flex items-center space-x-1.5 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={attachGps} 
-                onChange={(e) => setAttachGps(e.target.checked)}
-                className="rounded accent-rose-600 bg-slate-900 border-slate-700" 
-              />
-              <span>Attach GPS ({gpsCoords.lat}, {gpsCoords.lon})</span>
-            </label>
-          </div>
-
-          {/* Priority selector */}
-          <div className="flex items-center space-x-1">
-            <span className="text-slate-500">Priority:</span>
-            <button
-              type="button"
-              onClick={() => setMsgPriority(prev => prev === 'NORMAL' ? 'URGENT' : prev === 'URGENT' ? 'CRITICAL' : 'NORMAL')}
-              className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
-                msgPriority === 'CRITICAL' ? 'bg-rose-950 text-rose-300 border border-rose-700' : msgPriority === 'URGENT' ? 'bg-amber-950 text-amber-300 border border-amber-700' : 'bg-slate-900 text-slate-400 border border-slate-800'
-              }`}
-            >
-              {msgPriority}
-            </button>
           </div>
         </div>
 
-        {/* Text Input Row */}
-        <div className="flex items-center space-x-2">
-          {/* Photo attachment mock button */}
-          <button
-            type="button"
-            onClick={handleSimulatePhotoAttachment}
-            title="Attach Hazard Photo"
-            className="p-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-2xl text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
-          >
-            <Camera className="w-4 h-4" />
-          </button>
+        {/* Devices Cards List */}
+        <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1">
+          {visibleDevices.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400 font-mono space-y-2">
+              <Radio className="w-8 h-8 text-slate-400 mx-auto animate-pulse" />
+              <p>Scanning local 500m mesh for VajraNet nodes...</p>
+            </div>
+          ) : (
+            visibleDevices.map((dev) => {
+              const isDirect = dev.hops === 1;
+              const hasLogs = (peerChatLogs[dev.id] || []).length > 0;
 
-          {/* Main Input Text Box */}
-          <input
-            type="text"
-            placeholder={`Send message to #${activeChannel}...`}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-sans"
-          />
+              return (
+                <div
+                  key={dev.id}
+                  className="bg-slate-50 border border-slate-200 hover:border-[#0077B6] rounded-2xl p-3.5 flex items-center justify-between gap-3 transition shadow-sm"
+                >
+                  {/* Left: Device Info & Hop Count */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-black text-slate-900">{dev.id}</span>
+                      {dev.isVerified && (
+                        <span className="text-[9px] bg-blue-100 text-[#0077B6] border border-blue-300 px-1.5 py-0.2 rounded font-mono font-bold">
+                          Verified
+                        </span>
+                      )}
+                    </div>
 
-          {/* Send Button */}
-          <button
-            type="submit"
-            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white p-2.5 rounded-2xl transition-all shadow-lg shadow-emerald-600/30 cursor-pointer active:scale-95"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+                    <p className="text-xs text-slate-700 font-medium">{dev.name} • <span className="text-slate-500 text-[10px]">{dev.role}</span></p>
+
+                    {/* Hop Distance & Signal Telemetry */}
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 pt-0.5">
+                      <span className={`font-bold ${isDirect ? 'text-[#059669]' : 'text-amber-700'}`}>
+                        {isDirect ? '🟢 Direct (1 hop)' : `🟠 ${dev.hops} hops away`}
+                      </span>
+                      <span>•</span>
+                      <span>📍 ~{dev.distance}</span>
+                      <span>•</span>
+                      <span>🔋 {dev.battery}%</span>
+                    </div>
+                  </div>
+
+                  {/* Right: Connect / Message Action */}
+                  <button
+                    onClick={() => setSelectedPeer(dev)}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                      hasLogs
+                        ? 'bg-[#059669] hover:bg-[#047857] text-white'
+                        : 'bg-[#0077B6] hover:bg-[#005f92] text-white'
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>{hasLogs ? 'Chat' : 'Connect'}</span>
+                  </button>
+                </div>
+              );
+            })
+          )}
         </div>
-      </form>
 
-      {/* ==================== MODAL: ACTIVE MESH PEERS ==================== */}
-      {showPeerModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <Users className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-sm font-bold text-white">Active Mesh Peers (500m)</h3>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. PEER-TO-PEER DIRECT DISTRESS CHAT MODAL (CRISP WHITE CARD)             */}
+      {/* ========================================================================= */}
+      {selectedPeer && (
+        <div className="fixed inset-0 bg-[#07172C]/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 max-w-md w-full h-[70vh] flex flex-col justify-between shadow-2xl space-y-3">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-100 border border-blue-300 flex items-center justify-center text-[#0077B6]">
+                  <Radio className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 font-mono">{selectedPeer.id} ({selectedPeer.name})</h3>
+                  <p className="text-[10px] text-slate-500 font-mono">
+                    {selectedPeer.hops === 1 ? 'Direct Link' : `${selectedPeer.hops} Hops Relay`} • Signal: {selectedPeer.signalDbm}dBm
+                  </p>
+                </div>
               </div>
-              <button 
-                onClick={() => setShowPeerModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+
+              <button
+                onClick={() => setSelectedPeer(null)}
+                className="p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-2 max-h-72 overflow-y-auto no-scrollbar">
-              {peerNodes.map((peer) => (
-                <div key={peer.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs space-y-1 shadow">
-                  <div className="flex items-center justify-between font-bold">
-                    <span className="text-white">{peer.name}</span>
-                    <span className="text-[10px] font-mono text-emerald-400">{peer.distance} away</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                    <span>ID: {peer.id} • {peer.role}</span>
-                    <span>Signal: {peer.signal}</span>
-                  </div>
+            {/* Chat Log Stream */}
+            <div className="flex-1 bg-slate-50 rounded-2xl p-3.5 overflow-y-auto space-y-2.5 border border-slate-200">
+              {(!peerChatLogs[selectedPeer.id] || peerChatLogs[selectedPeer.id].length === 0) ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-500 text-xs font-mono space-y-2">
+                  <MessageSquare className="w-6 h-6 text-slate-400" />
+                  <p>Encrypted P2P Link Established with {selectedPeer.id}.</p>
+                  <p className="text-[10px]">Send a message, request emergency assistance, or share coordinates.</p>
                 </div>
-              ))}
+              ) : (
+                peerChatLogs[selectedPeer.id].map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-2xl p-3 text-xs leading-relaxed shadow-sm ${
+                      msg.isMe
+                        ? 'bg-[#0077B6] text-white rounded-br-none'
+                        : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
+                    }`}>
+                      <p>{msg.text}</p>
+                      <span className="text-[9px] opacity-75 block text-right mt-1 font-mono">{msg.time}</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
-            <button
-              onClick={() => setShowPeerModal(false)}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs py-2.5 rounded-xl transition-colors cursor-pointer"
-            >
-              Close Mesh Peers
-            </button>
+            {/* Message Input Bar */}
+            <form onSubmit={handleSendPeerMessage} className="flex gap-2 pt-1">
+              <input
+                type="text"
+                value={peerMessageText}
+                onChange={(e) => setPeerMessageText(e.target.value)}
+                placeholder={`Message ${selectedPeer.name}...`}
+                className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-[#0077B6] focus:bg-white"
+              />
+              <button
+                type="submit"
+                className="bg-[#0077B6] hover:bg-[#005f92] text-white p-2.5 rounded-xl transition cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+
           </div>
         </div>
       )}

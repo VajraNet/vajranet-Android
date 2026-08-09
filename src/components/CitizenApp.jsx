@@ -27,13 +27,34 @@ import {
   ChevronRight,
   Sparkles,
   ArrowLeft,
-  Users
+  Shield,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import LoginPage from './LoginPage';
 import MeshChat from './MeshChat';
 
 export default function CitizenApp() {
+  // Theme State: 'dark' | 'light'
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('vajranet_theme') || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    try {
+      localStorage.setItem('vajranet_theme', nextTheme);
+    } catch (e) {
+      console.warn('Failed to save theme', e);
+    }
+  };
+
   // Navigation State: 'home' | 'help' | 'mesh' | 'alerts' | 'ai' | 'report'
   const [activeTab, setActiveTab] = useState('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -76,7 +97,7 @@ export default function CitizenApp() {
   const [aiMessages, setAiMessages] = useState([
     { 
       sender: 'ai', 
-      text: 'Namaste. I am the VajraNet Safety Advisor. Ask me for first-aid protocols, flood safety, or finding higher ground.' 
+      text: 'Namaste. I am the VajraNet Safety Protocol Advisor. Ask me for first-aid procedures, flood evacuation safety, or locating nearest medical care.' 
     }
   ]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -170,8 +191,8 @@ export default function CitizenApp() {
       if (Array.isArray(sh)) setShelters(sh);
     } catch {
       setShelters([
-        { id: 'SH-1', name: 'Sector 4 Indoor Stadium Camp', address: 'Sports Complex, Sector 4', capacity: 800, available_capacity: 340, status: 'OPEN', distance_km: 0.8 },
-        { id: 'SH-2', name: 'Govt Model High School Shelter', address: 'Station Road', capacity: 400, available_capacity: 20, status: 'OPEN', distance_km: 1.4 }
+        { id: 'SH-1', name: 'Sector 4 Indoor Stadium Relief Camp', address: 'Sports Complex, Sector 4', capacity: 800, available_capacity: 340, status: 'OPEN', distance_km: 0.8 },
+        { id: 'SH-2', name: 'Model High School Shelter', address: 'Station Road, Gate 1', capacity: 400, available_capacity: 20, status: 'OPEN', distance_km: 1.4 }
       ]);
     }
 
@@ -192,7 +213,7 @@ export default function CitizenApp() {
       setReliefCenters([
         { 
           id: 'RC-1', 
-          name: 'NDRF Central Ration & Water Depot', 
+          name: 'VajraNet Central Ration & Water Depot', 
           address: 'Community Hall Block B', 
           supplies: { food: 'Available', water: 'Available', medicine: 'Limited', blankets: 'Available' },
           distance_km: 0.9 
@@ -205,8 +226,8 @@ export default function CitizenApp() {
       if (Array.isArray(anns)) setAnnouncements(anns);
     } catch {
       setAnnouncements([
-        { id: 'A-1', title: '⚠️ FLOOD ALERT: Zone B Evacuation', content: 'Move to higher ground immediately. Evacuate Zone B using Route 1.', severity: 'CRITICAL', created_at: new Date().toISOString() },
-        { id: 'A-2', title: 'Clean Water Tanker Deployed', content: 'Drinking water distribution operational at Station Road.', severity: 'INFO', created_at: new Date().toISOString() }
+        { id: 'A-1', title: '⚠️ FLOOD ALERT: Zone B Evacuation Warning', content: 'Move to higher ground immediately. Evacuate Zone B using Route 1.', severity: 'CRITICAL', created_at: new Date().toISOString() },
+        { id: 'A-2', title: 'Clean Water Tanker Distribution Active', content: 'Drinking water distribution operational at Station Road.', severity: 'INFO', created_at: new Date().toISOString() }
       ]);
     }
   };
@@ -224,6 +245,31 @@ export default function CitizenApp() {
       user_phone: user?.phone || 'N/A'
     };
 
+    // Universal 3rd Feed: Inject immediately into Citizen Alerts Feed
+    const liveCitizenAlert = {
+      id: `ALERT-SOS-${Date.now()}`,
+      title: `🚨 LIVE CITIZEN SOS: ${user?.name || 'Citizen'}`,
+      content: `Urgent SOS signaled near (${gpsCoords.lat}, ${gpsCoords.lon}). Urgency: ${sosType}. Citizens and volunteers nearby please assist.`,
+      severity: 'CRITICAL',
+      isLiveSos: true,
+      created_at: new Date().toISOString()
+    };
+    setAnnouncements(prev => [liveCitizenAlert, ...prev]);
+
+    // Broadcast across P2P mesh bus
+    try {
+      const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
+      bc.postMessage({
+        senderId: localStorage.getItem('vajranet_device_id') || `VAJRA-${Date.now()}`,
+        senderName: user?.name || 'Citizen',
+        message: `🚨 CRITICAL SOS BEACON: (${gpsCoords.lat}, ${gpsCoords.lon}) - ${sosType}`
+      });
+      setTimeout(() => bc.close(), 100);
+    } catch (e) {
+      console.warn('Broadcast failed', e);
+    }
+
+    // Transmit to Government and Volunteer feeds (or buffer if offline)
     try {
       const res = await apiFetch('/sos', {
         method: 'POST',
@@ -238,7 +284,7 @@ export default function CitizenApp() {
         message_id: msgId,
         type: 'SOS',
         created_at: new Date().toISOString(),
-        origin_device_id: `DEVICE-${user?.phone || 'ANON'}`,
+        origin_device_id: localStorage.getItem('vajranet_device_id') || `DEVICE-${user?.phone || 'ANON'}`,
         payload: payload
       };
       saveQueue([...offlineQueue, offlineEvent]);
@@ -273,12 +319,11 @@ export default function CitizenApp() {
       });
       setIncidentSubmitted(true);
     } catch {
-      // Buffer in offline queue
       const offlineEvent = {
         message_id: msgId,
         type: 'INCIDENT',
         created_at: new Date().toISOString(),
-        origin_device_id: `DEVICE-${user?.phone || 'ANON'}`,
+        origin_device_id: localStorage.getItem('vajranet_device_id') || `DEVICE-${user?.phone || 'ANON'}`,
         payload: payload
       };
       saveQueue([...offlineQueue, offlineEvent]);
@@ -332,44 +377,72 @@ export default function CitizenApp() {
     );
   }
 
+  const isDark = theme === 'dark';
+
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-[#070e1c] text-white flex flex-col font-sans select-none">
+    <div className={`max-w-md mx-auto min-h-screen ${
+      isDark 
+        ? 'bg-gradient-to-b from-[#07172C] via-[#0E294B] to-[#07172C] text-slate-100' 
+        : 'bg-gradient-to-b from-[#F1F5F9] via-[#E2E8F0] to-[#F1F5F9] text-slate-900'
+    } flex flex-col font-sans select-none transition-colors duration-300`}>
       
-      {/* ==================== TOP EMERGENCY BAR ==================== */}
-      <header className="sticky top-0 z-50 bg-[#081324]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-2.5 shadow-md flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center shadow-md shadow-rose-600/30">
-            <ShieldAlert className="w-4 h-4 text-white" />
+      {/* ==================== 1. VAJRANET HEADER BAR ==================== */}
+      <header className={`px-4 py-2.5 shadow-md flex items-center justify-between sticky top-0 z-40 transition-colors ${
+        isDark 
+          ? 'bg-[#0B2545]/95 backdrop-blur-md border-b border-[#D4AF37]/40 text-white' 
+          : 'bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-900'
+      }`}>
+        <div className="flex items-center space-x-2.5">
+          <div className={`w-8 h-8 rounded-full border flex items-center justify-center shadow-md ${
+            isDark ? 'bg-[#07172C] border-[#D4AF37]' : 'bg-[#0B2545] border-[#D4AF37]'
+          }`}>
+            <Shield className="w-4 h-4 text-[#D4AF37]" />
           </div>
           <div>
-            <span className="font-black text-sm tracking-wider text-white">VAJRANET</span>
-            <span className="text-[10px] text-slate-400 font-mono block -mt-0.5">
-              {user.isGuest ? 'Guest Citizen' : user.name}
+            <span className="font-black text-sm tracking-wide block">VAJRANET</span>
+            <span className={`text-[10px] font-mono block -mt-0.5 ${isDark ? 'text-[#D4AF37]' : 'text-amber-700 font-bold'}`}>
+              {user.isGuest ? 'Citizen (Guest)' : user.name}
             </span>
           </div>
         </div>
 
-        {/* High-Visibility Network Status Pill */}
+        {/* Action Controls: Theme Switcher & Logout */}
         <div className="flex items-center gap-2">
+          
+          {/* Light / Dark Mode Toggle Button (Replaced Connected Button) */}
+          <button
+            onClick={toggleTheme}
+            className={`px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm active:scale-95 border ${
+              isDark 
+                ? 'bg-[#07172C] hover:bg-[#0E294B] border-[#D4AF37]/60 text-[#D4AF37]' 
+                : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+            }`}
+            title="Toggle Light/Dark Theme"
+          >
+            {isDark ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[10px]">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-blue-600" />
+                <span className="text-[10px]">Dark</span>
+              </>
+            )}
+          </button>
+
+          {/* Queue Indicator if items buffered */}
           {offlineQueue.length > 0 && (
             <button
               onClick={syncOfflineQueue}
               disabled={isSyncingQueue}
-              className="bg-amber-950/80 border border-amber-600 text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 cursor-pointer"
+              className="bg-[#D4AF37]/20 border border-[#D4AF37] text-[#D4AF37] text-[10px] px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 cursor-pointer"
             >
               <RefreshCw className={`w-3 h-3 ${isSyncingQueue ? 'animate-spin' : ''}`} />
-              <span>{offlineQueue.length} Buffered</span>
+              <span>{offlineQueue.length} Queued</span>
             </button>
           )}
-
-          <div className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1.5 border shadow-sm ${
-            isOnline 
-              ? 'bg-emerald-950/90 text-emerald-300 border-emerald-700/80' 
-              : 'bg-amber-950/90 text-amber-300 border-amber-700/80'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
-            <span>{isOnline ? '🟢 Connected' : '🟠 Offline Mesh'}</span>
-          </div>
 
           <button
             onClick={() => {
@@ -377,71 +450,80 @@ export default function CitizenApp() {
               setUser(null);
             }}
             title="Log Out"
-            className="text-slate-500 hover:text-slate-300 p-1"
+            className={`${isDark ? 'text-slate-400 hover:text-rose-400' : 'text-slate-500 hover:text-rose-600'} p-1 transition cursor-pointer`}
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* ==================== MAIN CONTENT CANVAS ==================== */}
+      {/* ==================== 2. MAIN CONTENT CANVAS ==================== */}
       <main className="flex-1 p-4 pb-24 overflow-y-auto space-y-4">
         
         {/* ===================== VIEW 1: HOME (EMERGENCY FIRST) ===================== */}
         {activeTab === 'home' && (
           <div className="space-y-4">
             
-            {/* ⚠️ Official Government Alert Banner */}
+            {/* ⚠️ Official Emergency Alert Card */}
             {announcements.length > 0 && (
               <div 
                 onClick={() => setActiveTab('alerts')}
-                className="bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/70 border border-amber-500/60 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer shadow-lg active:scale-[0.99] transition"
+                className="bg-white border-l-4 border-l-amber-500 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-xl active:scale-[0.99] transition border border-slate-200"
               >
-                <div className="flex items-center space-x-2.5">
-                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 animate-bounce" />
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                    <AlertTriangle className="w-4 h-4 animate-bounce" />
+                  </div>
                   <div>
-                    <h3 className="text-xs font-black text-amber-300 uppercase tracking-wide">{announcements[0].title}</h3>
-                    <p className="text-[11px] text-amber-200/90 line-clamp-1">{announcements[0].content}</p>
+                    <span className="text-[9px] font-mono bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold uppercase">
+                      DISASTER BROADCAST
+                    </span>
+                    <h3 className="text-xs font-bold text-slate-900 mt-0.5">{announcements[0].title}</h3>
+                    <p className="text-[11px] text-slate-600 line-clamp-1">{announcements[0].content}</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-amber-400 shrink-0" />
+                <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
               </div>
             )}
 
-            {/* 🚨 THE LARGE SEND SOS CARD */}
+            {/* 🚨 THE HIGH-CONTRAST CRISP WHITE SOS CARD */}
             {!sosSent ? (
-              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 text-center space-y-4 shadow-2xl relative overflow-hidden">
+              <div className="bg-white rounded-3xl p-6 text-center space-y-4 shadow-2xl border border-slate-200 relative overflow-hidden">
+                
                 <div className="space-y-1">
-                  <h2 className="text-xl font-black tracking-tight text-white uppercase">SEND SOS</h2>
-                  <p className="text-xs text-slate-400">
-                    Dispatches your exact GPS coordinates directly to NDRF and local rescue teams.
+                  <span className="text-[10px] font-mono bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Emergency Dispatch
+                  </span>
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">TRANSMIT SOS BEACON</h2>
+                  <p className="text-xs text-slate-500">
+                    Broadcasts your GPS coordinates to Responders and nearby Citizens.
                   </p>
                 </div>
 
                 {/* Pulsing Red SOS Button */}
-                <div className="py-3 flex justify-center">
+                <div className="py-2 flex justify-center">
                   <button
                     onClick={handleSendSOS}
                     disabled={sosSubmitting}
-                    className="relative w-44 h-44 rounded-full bg-gradient-to-tr from-rose-700 via-rose-600 to-red-500 text-white font-black text-2xl tracking-widest shadow-2xl shadow-rose-600/70 active:scale-95 transition-all flex flex-col items-center justify-center border-4 border-rose-400/40 cursor-pointer animate-pulse-ring"
+                    className="relative w-40 h-40 rounded-full bg-gradient-to-tr from-rose-700 to-red-500 text-white font-black text-2xl tracking-widest shadow-2xl shadow-rose-600/40 active:scale-95 transition-all flex flex-col items-center justify-center border-4 border-rose-300/40 cursor-pointer animate-pulse-ring"
                   >
-                    <AlertTriangle className="w-11 h-11 mb-1 animate-pulse" />
+                    <AlertTriangle className="w-10 h-10 mb-1 animate-pulse text-white" />
                     <span>SOS</span>
-                    <span className="text-[10px] tracking-normal font-medium text-rose-100 mt-0.5">
+                    <span className="text-[10px] tracking-normal font-bold text-rose-100 mt-0.5">
                       {sosSubmitting ? 'DISPATCHING...' : 'TAP FOR HELP'}
                     </span>
                   </button>
                 </div>
 
                 {/* Severity Level Selector */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">Select Emergency Urgency</label>
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-[10px] text-slate-500 uppercase font-mono tracking-wider block font-bold">Select Urgency Level</label>
                   <div className="grid grid-cols-3 gap-2 text-xs font-bold font-mono">
                     <button
                       type="button"
                       onClick={() => setSosType('CRITICAL')}
-                      className={`py-2 rounded-xl border transition ${
-                        sosType === 'CRITICAL' ? 'bg-rose-950 text-rose-300 border-rose-500 ring-1 ring-rose-500' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      className={`py-2 rounded-xl border transition cursor-pointer ${
+                        sosType === 'CRITICAL' ? 'bg-rose-600 text-white border-rose-600 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200'
                       }`}
                     >
                       🚨 Critical
@@ -449,8 +531,8 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setSosType('HIGH')}
-                      className={`py-2 rounded-xl border transition ${
-                        sosType === 'HIGH' ? 'bg-amber-950 text-amber-300 border-amber-500 ring-1 ring-amber-500' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      className={`py-2 rounded-xl border transition cursor-pointer ${
+                        sosType === 'HIGH' ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200'
                       }`}
                     >
                       🟠 High
@@ -458,61 +540,61 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setSosType('MEDIUM')}
-                      className={`py-2 rounded-xl border transition ${
-                        sosType === 'MEDIUM' ? 'bg-blue-950 text-blue-300 border-blue-500 ring-1 ring-blue-500' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      className={`py-2 rounded-xl border transition cursor-pointer ${
+                        sosType === 'MEDIUM' ? 'bg-[#0077B6] text-white border-[#0077B6] shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200'
                       }`}
                     >
-                      🟡 Medium
+                      🔵 Medium
                     </button>
                   </div>
                 </div>
 
-                {/* Auto-Captured Telemetry */}
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                {/* Telemetry Footer */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-mono">
                   <span>📍 GPS: {gpsCoords.lat}, {gpsCoords.lon}</span>
-                  <span>⏱️ Real-time Lock</span>
+                  <span>⏱️ Verified Lock</span>
                 </div>
               </div>
             ) : (
-              /* SOS SENT STATUS BANNER */
-              <div className="bg-gradient-to-br from-rose-950/80 via-slate-900 to-slate-900 border-2 border-rose-500/80 rounded-3xl p-6 text-center space-y-4 shadow-2xl animate-fadeIn">
-                <div className="w-16 h-16 rounded-full bg-rose-900/60 border-2 border-rose-400 flex items-center justify-center mx-auto text-rose-300 shadow-lg shadow-rose-600/40">
-                  <CheckCircle2 className="w-9 h-9 animate-bounce" />
+              /* SOS SENT STATUS BANNER (CRISP WHITE CARD) */
+              <div className="bg-white rounded-3xl p-6 text-center space-y-4 shadow-2xl border-2 border-rose-500 animate-fadeIn">
+                <div className="w-14 h-14 rounded-full bg-rose-100 border-2 border-rose-500 flex items-center justify-center mx-auto text-rose-600 shadow-md">
+                  <CheckCircle2 className="w-8 h-8 animate-bounce" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-mono text-rose-400 font-bold uppercase tracking-wider block">DISPATCH BEACON BROADCASTING</span>
-                  <h2 className="text-xl font-black text-white mt-0.5">SOS #{assignedSosId}</h2>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  <span className="text-[10px] font-mono text-rose-700 font-bold uppercase tracking-wider block">BEACON ACTIVE ACROSS 3 FEEDS</span>
+                  <h2 className="text-xl font-black text-slate-900 mt-0.5">SOS #{assignedSosId}</h2>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                     {isOnline 
-                      ? 'Transmitted directly to Government NDRF Command Center.' 
-                      : 'Relaying automatically over peer-to-peer Bluetooth & Wi-Fi mesh.'}
+                      ? 'Transmitted directly to Command & Volunteer boards.' 
+                      : 'Relaying peer-to-peer over Bluetooth & Wi-Fi Direct mesh.'}
                   </p>
                 </div>
 
-                <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 text-xs font-mono grid grid-cols-2 gap-2 text-left">
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs font-mono grid grid-cols-2 gap-2 text-left">
                   <div>
                     <span className="text-slate-500 block text-[10px]">Status:</span>
-                    <span className="text-emerald-400 font-bold">🟢 Active Dispatch</span>
+                    <span className="text-emerald-700 font-bold">🟢 Active Dispatch</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block text-[10px]">Priority:</span>
-                    <span className="text-rose-400 font-bold">{sosType}</span>
+                    <span className="text-rose-700 font-bold">{sosType}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setSosSent(false)}
-                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer border border-slate-700"
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer border border-slate-300"
                 >
                   Send Another SOS / Update Location
                 </button>
               </div>
             )}
 
-            {/* "NEED SOMETHING ELSE?" 4 ACTION TILES */}
+            {/* "EMERGENCY SERVICES & RESOURCES" 4 CRISP WHITE CARDS */}
             <div className="space-y-2 pt-2">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
-                Need Something Else?
+              <h3 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? 'text-[#D4AF37]' : 'text-slate-700'}`}>
+                Emergency Services & Resources
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 
@@ -522,14 +604,14 @@ export default function CitizenApp() {
                     setHelpSubTab('shelters');
                     setActiveTab('help');
                   }}
-                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
+                  className="p-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-emerald-950 border border-emerald-700/80 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-[#059669] group-hover:scale-110 transition">
                     <Home className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white">Find Shelters</h4>
-                    <p className="text-[10px] text-slate-400 font-mono">Safe high ground</p>
+                    <h4 className="text-xs font-bold text-slate-900">Find Shelters</h4>
+                    <p className="text-[10px] text-slate-500 font-mono">Safe high ground</p>
                   </div>
                 </button>
 
@@ -539,14 +621,14 @@ export default function CitizenApp() {
                     setHelpSubTab('hospitals');
                     setActiveTab('help');
                   }}
-                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
+                  className="p-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-cyan-950 border border-cyan-700/80 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 border border-blue-300 flex items-center justify-center text-[#0077B6] group-hover:scale-110 transition">
                     <HeartPulse className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white">Hospitals</h4>
-                    <p className="text-[10px] text-slate-400 font-mono">Live ICU & beds</p>
+                    <h4 className="text-xs font-bold text-slate-900">Hospitals & ICU</h4>
+                    <p className="text-[10px] text-slate-500 font-mono">Live beds & trauma</p>
                   </div>
                 </button>
 
@@ -556,28 +638,28 @@ export default function CitizenApp() {
                     setHelpSubTab('relief');
                     setActiveTab('help');
                   }}
-                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
+                  className="p-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-amber-950 border border-amber-700/80 flex items-center justify-center text-amber-400 group-hover:scale-110 transition">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 group-hover:scale-110 transition">
                     <Package className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white">Relief Centers</h4>
-                    <p className="text-[10px] text-slate-400 font-mono">Food, water, rations</p>
+                    <h4 className="text-xs font-bold text-slate-900">Relief Depots</h4>
+                    <p className="text-[10px] text-slate-500 font-mono">Food, water, rations</p>
                   </div>
                 </button>
 
                 {/* Tile 4: Report Incident */}
                 <button
                   onClick={() => setActiveTab('report')}
-                  className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/50 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
+                  className="p-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-left transition active:scale-[0.98] shadow-lg group flex flex-col justify-between h-28 cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-rose-950 border border-rose-700/80 flex items-center justify-center text-rose-400 group-hover:scale-110 transition">
+                  <div className="w-8 h-8 rounded-xl bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700 group-hover:scale-110 transition">
                     <FileText className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white">Report Incident</h4>
-                    <p className="text-[10px] text-slate-400 font-mono">Roadblock, fire, flood</p>
+                    <h4 className="text-xs font-bold text-slate-900">Report Hazard</h4>
+                    <p className="text-[10px] text-slate-500 font-mono">Roadblock, fire, flood</p>
                   </div>
                 </button>
 
@@ -591,24 +673,24 @@ export default function CitizenApp() {
         {activeTab === 'help' && (
           <div className="space-y-4">
             
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h2 className="text-base font-black text-white flex items-center gap-2">
+            <div className={`flex items-center justify-between pb-2 border-b ${isDark ? 'border-[#D4AF37]/30' : 'border-slate-300'}`}>
+              <h2 className={`text-base font-black flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 <span>📍 Nearby Emergency Help</span>
               </h2>
               <button 
                 onClick={loadResources}
-                className="text-[10px] text-blue-400 font-mono flex items-center gap-1 cursor-pointer"
+                className={`text-[10px] font-mono flex items-center gap-1 cursor-pointer font-bold ${isDark ? 'text-[#D4AF37]' : 'text-blue-700'}`}
               >
                 <RefreshCw className="w-3 h-3" /> Refresh
               </button>
             </div>
 
-            {/* 3 Simple Sub-Tabs */}
-            <div className="grid grid-cols-3 gap-1.5 bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
+            {/* 3 Segmented Sub-Tabs */}
+            <div className="grid grid-cols-3 bg-white p-1 rounded-2xl border border-slate-200 text-xs font-bold shadow-md">
               <button
                 onClick={() => setHelpSubTab('shelters')}
                 className={`py-2 rounded-xl transition cursor-pointer ${
-                  helpSubTab === 'shelters' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  helpSubTab === 'shelters' ? 'bg-[#059669] text-white shadow' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 🏠 Shelters
@@ -616,7 +698,7 @@ export default function CitizenApp() {
               <button
                 onClick={() => setHelpSubTab('hospitals')}
                 className={`py-2 rounded-xl transition cursor-pointer ${
-                  helpSubTab === 'hospitals' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  helpSubTab === 'hospitals' ? 'bg-[#0077B6] text-white shadow' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 🏥 Hospitals
@@ -624,7 +706,7 @@ export default function CitizenApp() {
               <button
                 onClick={() => setHelpSubTab('relief')}
                 className={`py-2 rounded-xl transition cursor-pointer ${
-                  helpSubTab === 'relief' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  helpSubTab === 'relief' ? 'bg-amber-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 🎁 Relief
@@ -635,24 +717,24 @@ export default function CitizenApp() {
             {helpSubTab === 'shelters' && (
               <div className="space-y-3">
                 {shelters.map((sh) => (
-                  <div key={sh.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+                  <div key={sh.id} className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2 shadow-lg">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="text-xs font-bold text-white">{sh.name}</h4>
-                        <p className="text-[10px] text-slate-400">{sh.address}</p>
+                        <h4 className="text-xs font-bold text-slate-900">{sh.name}</h4>
+                        <p className="text-[10px] text-slate-500">{sh.address}</p>
                       </div>
-                      <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded font-mono font-bold">
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded font-mono font-bold">
                         {sh.status || 'OPEN'}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                    <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                       <div>
-                        <span className="text-slate-500 block text-[9px]">Available Space</span>
-                        <span className="text-emerald-400 font-bold">{sh.available_capacity || (sh.capacity - (sh.occupied || 0))} Beds</span>
+                        <span className="text-slate-500 block text-[9px]">Available Capacity</span>
+                        <span className="text-[#059669] font-bold">{sh.available_capacity || (sh.capacity - (sh.occupied || 0))} Beds</span>
                       </div>
                       <div>
                         <span className="text-slate-500 block text-[9px]">Distance</span>
-                        <span className="text-slate-200 font-bold">{sh.distance_km || 0.8} km away</span>
+                        <span className="text-slate-800 font-bold">{sh.distance_km || 0.8} km away</span>
                       </div>
                     </div>
                   </div>
@@ -664,28 +746,28 @@ export default function CitizenApp() {
             {helpSubTab === 'hospitals' && (
               <div className="space-y-3">
                 {hospitals.map((hosp) => (
-                  <div key={hosp.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+                  <div key={hosp.id} className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2 shadow-lg">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="text-xs font-bold text-white">{hosp.name}</h4>
-                        <p className="text-[10px] text-slate-400">{hosp.address}</p>
+                        <h4 className="text-xs font-bold text-slate-900">{hosp.name}</h4>
+                        <p className="text-[10px] text-slate-500">{hosp.address}</p>
                       </div>
-                      <span className="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-2 py-0.5 rounded font-mono font-bold">
+                      <span className="text-[10px] bg-blue-100 text-[#0077B6] border border-blue-300 px-2 py-0.5 rounded font-mono font-bold">
                         {hosp.emergency_available ? '🟢 Emergency Ready' : '🟡 Limited'}
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-[10px] font-mono bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                    <div className="grid grid-cols-3 gap-2 text-[10px] font-mono bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                       <div>
                         <span className="text-slate-500 block text-[9px]">General Beds</span>
-                        <span className="text-slate-200 font-bold">{hosp.available_beds || 18}</span>
+                        <span className="text-slate-800 font-bold">{hosp.available_beds || 18}</span>
                       </div>
                       <div>
                         <span className="text-slate-500 block text-[9px]">Live ICU</span>
-                        <span className="text-cyan-400 font-bold">{hosp.icu_available || 4} Beds</span>
+                        <span className="text-[#0077B6] font-bold">{hosp.icu_available || 4} Beds</span>
                       </div>
                       <div>
                         <span className="text-slate-500 block text-[9px]">Distance</span>
-                        <span className="text-slate-200 font-bold">{hosp.distance_km || 1.2} km</span>
+                        <span className="text-slate-800 font-bold">{hosp.distance_km || 1.2} km</span>
                       </div>
                     </div>
                   </div>
@@ -697,33 +779,33 @@ export default function CitizenApp() {
             {helpSubTab === 'relief' && (
               <div className="space-y-3">
                 {reliefCenters.map((rc) => (
-                  <div key={rc.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2.5">
+                  <div key={rc.id} className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2.5 shadow-lg">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="text-xs font-bold text-white">{rc.name}</h4>
-                        <p className="text-[10px] text-slate-400">{rc.address}</p>
+                        <h4 className="text-xs font-bold text-slate-900">{rc.name}</h4>
+                        <p className="text-[10px] text-slate-500">{rc.address}</p>
                       </div>
-                      <span className="text-[10px] text-amber-400 font-mono font-bold">
+                      <span className="text-[10px] text-amber-700 font-mono font-bold">
                         {rc.distance_km || 0.9} km away
                       </span>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 text-[10px] font-mono bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                    <div className="grid grid-cols-2 gap-2 text-[10px] font-mono bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                       <div className="flex items-center gap-1.5">
                         <span>🍚 Food:</span>
-                        <span className="text-emerald-400 font-bold">Available</span>
+                        <span className="text-[#059669] font-bold">Available</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span>💧 Water:</span>
-                        <span className="text-emerald-400 font-bold">Available</span>
+                        <span className="text-[#059669] font-bold">Available</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span>💊 Medicine:</span>
-                        <span className="text-amber-400 font-bold">Limited</span>
+                        <span className="text-amber-700 font-bold">Limited</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span>🛏 Blankets:</span>
-                        <span className="text-emerald-400 font-bold">Available</span>
+                        <span className="text-[#059669] font-bold">Available</span>
                       </div>
                     </div>
                   </div>
@@ -734,35 +816,56 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== VIEW 3: OFFLINE P2P MESH & CHAT (THE CORE FEATURE) ===================== */}
+        {/* ===================== VIEW 3: OFFLINE P2P MESH & CHAT ===================== */}
         {activeTab === 'mesh' && (
           <div className="space-y-3 animate-fadeIn">
-            <MeshChat user={user} gpsCoords={gpsCoords} />
+            <MeshChat user={user} gpsCoords={gpsCoords} onTriggerSOS={handleSendSOS} />
           </div>
         )}
 
-        {/* ===================== VIEW 4: GOVERNMENT ALERTS ===================== */}
+        {/* ===================== VIEW 4: CITIZEN ALERTS & DISASTER BROADCASTS ===================== */}
         {activeTab === 'alerts' && (
           <div className="space-y-4">
-            <h2 className="text-base font-black text-white flex items-center gap-2 pb-2 border-b border-slate-800">
-              <span>📢 Official Disaster Broadcasts</span>
+            <h2 className={`text-base font-black flex items-center gap-2 pb-2 border-b ${isDark ? 'border-[#D4AF37]/30 text-white' : 'border-slate-300 text-slate-900'}`}>
+              <span>📢 Citizen Alerts & Distress Broadcasts</span>
             </h2>
 
             <div className="space-y-3">
-              {announcements.map((ann) => (
-                <div key={ann.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono bg-red-950 text-red-300 border border-red-800 px-2 py-0.5 rounded font-bold">
-                      {ann.severity || 'OFFICIAL BROADCAST'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono">Verified Govt NDRF</span>
+              {announcements.map((ann) => {
+                const isLiveDistress = ann.isLiveSos || ann.title?.includes('DISTRESS') || ann.severity === 'CRITICAL';
+
+                return (
+                  <div
+                    key={ann.id}
+                    className={`bg-white rounded-2xl p-4 space-y-2.5 transition shadow-xl border-l-4 ${
+                      isLiveDistress
+                        ? 'border-l-rose-600 border border-slate-200'
+                        : 'border-l-blue-600 border border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
+                        isLiveDistress
+                          ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse'
+                          : 'bg-blue-100 text-blue-800 border-blue-300'
+                      }`}>
+                        {isLiveDistress ? '🚨 LIVE CITIZEN SOS' : (ann.severity || 'DISASTER BROADCAST')}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {isLiveDistress ? '📡 P2P Mesh Relayed' : 'Verified Alert'}
+                      </span>
+                    </div>
+
+                    <h3 className={`text-xs font-bold ${isLiveDistress ? 'text-rose-700' : 'text-slate-900'}`}>
+                      {ann.title}
+                    </h3>
+
+                    <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      {ann.content}
+                    </p>
                   </div>
-                  <h3 className="text-xs font-bold text-white">{ann.title}</h3>
-                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-                    {ann.content}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -770,13 +873,13 @@ export default function CitizenApp() {
         {/* ===================== VIEW 5: AI SAFETY ASSISTANT ===================== */}
         {activeTab === 'ai' && (
           <div className="space-y-4 flex flex-col h-[74vh]">
-            <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
+            <div className={`pb-2 border-b flex items-center justify-between ${isDark ? 'border-[#D4AF37]/30' : 'border-slate-300'}`}>
               <div>
-                <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-purple-400" />
-                  <span>AI Disaster Survival Advisor</span>
+                <h2 className={`text-sm font-bold flex items-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+                  <span>AI Disaster Survival Protocol</span>
                 </h2>
-                <p className="text-[10px] text-slate-400">Offline-ready emergency protocols and first-aid guide</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Offline-ready emergency protocols & first-aid procedures</p>
               </div>
             </div>
 
@@ -784,8 +887,10 @@ export default function CitizenApp() {
             <div className="flex-1 overflow-y-auto space-y-2.5 py-2">
               {aiMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
-                    msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-200'
+                  <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-md ${
+                    msg.sender === 'user' 
+                      ? 'bg-[#0077B6] text-white' 
+                      : 'bg-white text-slate-800 border border-slate-200'
                   }`}>
                     {msg.text}
                   </div>
@@ -793,7 +898,7 @@ export default function CitizenApp() {
               ))}
               {aiLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl px-3.5 py-2 text-xs text-purple-400 font-mono animate-pulse">
+                  <div className="bg-white border border-slate-200 rounded-2xl px-3.5 py-2 text-xs text-[#0077B6] font-mono animate-pulse">
                     Synthesizing safety protocol...
                   </div>
                 </div>
@@ -801,18 +906,18 @@ export default function CitizenApp() {
             </div>
 
             {/* Input Bar */}
-            <form onSubmit={handleAskAI} className="flex items-center space-x-2 pt-2 border-t border-slate-800">
+            <form onSubmit={handleAskAI} className="flex items-center space-x-2 pt-2 border-t border-slate-300">
               <input
                 type="text"
-                placeholder="Ask emergency question (e.g. flood safety, snake bite)..."
+                placeholder="Ask emergency protocol question..."
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-[#0077B6]"
               />
               <button
                 type="submit"
                 disabled={aiLoading}
-                className="bg-purple-600 hover:bg-purple-500 text-white p-2.5 rounded-xl transition cursor-pointer"
+                className="bg-[#0077B6] hover:bg-[#005f92] text-white p-2.5 rounded-xl transition cursor-pointer"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -823,43 +928,43 @@ export default function CitizenApp() {
         {/* ===================== VIEW 6: REPORT DISASTER INCIDENT ===================== */}
         {activeTab === 'report' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className={`flex items-center justify-between pb-2 border-b ${isDark ? 'border-[#D4AF37]/30' : 'border-slate-300'}`}>
               <div className="flex items-center space-x-2">
                 <button 
                   onClick={() => setActiveTab('home')}
-                  className="p-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 cursor-pointer"
+                  className="p-1 rounded-lg bg-white border border-slate-300 text-slate-700 cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h2 className="text-sm font-bold text-white">Report Disaster Hazard</h2>
+                <h2 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Report Disaster Hazard</h2>
               </div>
             </div>
 
             {incidentSubmitted ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-3">
-                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
-                <h3 className="text-base font-bold text-white">Incident Report Submitted</h3>
-                <p className="text-xs text-slate-300">
-                  {isOnline ? 'Transmitted to Emergency Command.' : 'Buffered in local mesh queue for automatic relay.'}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 text-center space-y-3 shadow-xl">
+                <CheckCircle2 className="w-12 h-12 text-[#059669] mx-auto" />
+                <h3 className="text-base font-bold text-slate-900">Incident Report Submitted</h3>
+                <p className="text-xs text-slate-600">
+                  {isOnline ? 'Transmitted directly to Emergency Command.' : 'Buffered in local mesh queue for automatic relay.'}
                 </p>
                 <button
                   onClick={() => {
                     setIncidentSubmitted(false);
                     setActiveTab('home');
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold mt-2 cursor-pointer"
+                  className="px-4 py-2 bg-[#059669] hover:bg-[#047857] text-white rounded-xl text-xs font-bold mt-2 cursor-pointer"
                 >
                   Return to Home
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleReportIncident} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl">
+              <form onSubmit={handleReportIncident} className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 shadow-xl">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Incident Type</label>
+                  <label className="text-xs font-semibold text-slate-700">Incident Type</label>
                   <select
                     value={incidentType}
                     onChange={(e) => setIncidentType(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#0077B6]"
                   >
                     <option value="FLOOD">🌊 Flooded Road / Water Level</option>
                     <option value="FIRE">🔥 Fire / Explosion</option>
@@ -870,36 +975,36 @@ export default function CitizenApp() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Incident Title</label>
+                  <label className="text-xs font-semibold text-slate-700">Incident Title</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Flooded bridge near Sector 3"
                     value={incidentTitle}
                     onChange={(e) => setIncidentTitle(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-[#0077B6]"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Description</label>
+                  <label className="text-xs font-semibold text-slate-700">Description</label>
                   <textarea
                     rows={3}
                     placeholder="Provide details (water depth, trapped casualties, accessibility)..."
                     value={incidentDesc}
                     onChange={(e) => setIncidentDesc(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-[#0077B6]"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Severity</label>
+                  <label className="text-xs font-semibold text-slate-700">Severity</label>
                   <div className="grid grid-cols-3 gap-2 text-xs font-bold font-mono">
                     <button
                       type="button"
                       onClick={() => setIncidentSeverity('CRITICAL')}
-                      className={`py-1.5 rounded-xl border ${
-                        incidentSeverity === 'CRITICAL' ? 'bg-rose-950 text-rose-300 border-rose-500' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      className={`py-1.5 rounded-xl border cursor-pointer ${
+                        incidentSeverity === 'CRITICAL' ? 'bg-rose-600 text-white border-rose-600' : 'bg-slate-50 text-slate-600 border-slate-300'
                       }`}
                     >
                       CRITICAL
@@ -907,8 +1012,8 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setIncidentSeverity('HIGH')}
-                      className={`py-1.5 rounded-xl border ${
-                        incidentSeverity === 'HIGH' ? 'bg-amber-950 text-amber-300 border-amber-500' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      className={`py-1.5 rounded-xl border cursor-pointer ${
+                        incidentSeverity === 'HIGH' ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-slate-600 border-slate-300'
                       }`}
                     >
                       HIGH
@@ -916,8 +1021,8 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setIncidentSeverity('MEDIUM')}
-                      className={`py-1.5 rounded-xl border ${
-                        incidentSeverity === 'MEDIUM' ? 'bg-blue-950 text-blue-300 border-blue-500' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      className={`py-1.5 rounded-xl border cursor-pointer ${
+                        incidentSeverity === 'MEDIUM' ? 'bg-[#0077B6] text-white border-[#0077B6]' : 'bg-slate-50 text-slate-600 border-slate-300'
                       }`}
                     >
                       MEDIUM
@@ -927,9 +1032,9 @@ export default function CitizenApp() {
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition cursor-pointer"
+                  className="w-full py-3 bg-[#059669] hover:bg-[#047857] text-white font-bold text-xs rounded-xl shadow-lg transition cursor-pointer"
                 >
-                  Submit Incident Report
+                  Submit Incident Report →
                 </button>
               </form>
             )}
@@ -938,14 +1043,20 @@ export default function CitizenApp() {
 
       </main>
 
-      {/* ==================== 5-ITEM BOTTOM NAVIGATION (OFFLINE MESH IN CENTER) ==================== */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#081324]/95 backdrop-blur-md border-t border-slate-800/80 px-1 py-1.5 flex items-center justify-around z-50 shadow-2xl">
+      {/* ==================== 3. BOTTOM NAVIGATION BAR ==================== */}
+      <nav className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto px-1 py-1.5 flex items-center justify-around z-50 shadow-2xl transition-colors ${
+        isDark 
+          ? 'bg-[#07172C]/95 backdrop-blur-md border-t-2 border-[#D4AF37]/50' 
+          : 'bg-white/95 backdrop-blur-md border-t border-slate-300'
+      }`}>
         
         {/* 1. Home */}
         <button
           onClick={() => setActiveTab('home')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
-            activeTab === 'home' ? 'text-rose-500 font-bold' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'home' 
+              ? (isDark ? 'text-[#D4AF37] font-bold' : 'text-[#059669] font-bold') 
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <Home className="w-5 h-5" />
@@ -956,27 +1067,31 @@ export default function CitizenApp() {
         <button
           onClick={() => setActiveTab('help')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
-            activeTab === 'help' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'help' 
+              ? (isDark ? 'text-emerald-400 font-bold' : 'text-[#059669] font-bold') 
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <Navigation className="w-5 h-5" />
           <span className="text-[9px]">Nearby Help</span>
         </button>
 
-        {/* 3. ⭐ OFFLINE MESH (THE CORE PROMINENT CENTER OPTION) */}
+        {/* 3. ⭐ OFFLINE MESH (THE HERO CENTER BEACON) */}
         <button
           onClick={() => setActiveTab('mesh')}
           className={`flex flex-col items-center relative -top-3 cursor-pointer group`}
         >
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all border-2 ${
             activeTab === 'mesh'
-              ? 'bg-gradient-to-tr from-amber-500 to-rose-600 text-white border-amber-300 shadow-rose-600/50 scale-105 ring-2 ring-amber-500/40 animate-pulse'
-              : 'bg-slate-900 text-amber-400 border-amber-500/50 hover:border-amber-400 shadow-amber-500/20'
+              ? 'bg-[#0B2545] text-[#D4AF37] border-[#D4AF37] shadow-[#D4AF37]/40 scale-105 ring-2 ring-[#D4AF37]/50 animate-pulse'
+              : 'bg-[#07172C] text-[#D4AF37] border-[#D4AF37]/50 hover:border-[#D4AF37] shadow-lg'
           }`}>
-            <Radio className="w-6 h-6 animate-pulse" />
+            <Radio className="w-6 h-6 animate-pulse text-[#D4AF37]" />
           </div>
           <span className={`text-[10px] mt-0.5 font-bold font-mono tracking-tight ${
-            activeTab === 'mesh' ? 'text-amber-300' : 'text-slate-400'
+            activeTab === 'mesh' 
+              ? (isDark ? 'text-[#D4AF37]' : 'text-amber-700') 
+              : 'text-slate-400'
           }`}>
             Offline Mesh
           </span>
@@ -986,7 +1101,9 @@ export default function CitizenApp() {
         <button
           onClick={() => setActiveTab('alerts')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
-            activeTab === 'alerts' ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'alerts' 
+              ? (isDark ? 'text-amber-400 font-bold' : 'text-amber-600 font-bold') 
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <AlertTriangle className="w-5 h-5" />
@@ -997,7 +1114,9 @@ export default function CitizenApp() {
         <button
           onClick={() => setActiveTab('ai')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
-            activeTab === 'ai' ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'ai' 
+              ? (isDark ? 'text-blue-400 font-bold' : 'text-[#0077B6] font-bold') 
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <MessageSquare className="w-5 h-5" />
