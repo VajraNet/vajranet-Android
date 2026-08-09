@@ -38,9 +38,9 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isScanning, setIsScanning] = useState(false);
-  const [selectedPeer, setSelectedPeer] = useState(null); // When opening 1-on-1 peer distress chat
+  const [selectedPeer, setSelectedPeer] = useState(null);
   const [peerMessageText, setPeerMessageText] = useState('');
-  const [peerChatLogs, setPeerChatLogs] = useState({}); // { [peerId]: [ { sender, text, time, isMe } ] }
+  const [peerChatLogs, setPeerChatLogs] = useState({});
   const [sosSentBanner, setSosSentBanner] = useState(false);
 
   // 2. Discovered Peer Devices Pool in surrounding area
@@ -113,7 +113,6 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     }
   ]);
 
-  // Network online/offline listener
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -125,7 +124,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     };
   }, []);
 
-  // Live P2P Broadcast Channel for real multi-tab / local device communication
+  // Live P2P Broadcast Channel across browser tabs / local network nodes
   useEffect(() => {
     let channel;
     try {
@@ -133,7 +132,6 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
       channel.onmessage = (event) => {
         const { senderId, targetId, message, senderName } = event.data || {};
         if (senderId && senderId !== myDeviceId) {
-          // If message is directed to me or broadcast
           if (!targetId || targetId === myDeviceId) {
             setPeerChatLogs((prev) => ({
               ...prev,
@@ -150,7 +148,6 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
             }));
           }
 
-          // Auto register discovered peer if not present
           setAllDiscoveredDevices((prev) => {
             if (prev.some((d) => d.id === senderId)) return prev;
             return [
@@ -178,21 +175,18 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     };
   }, [myDeviceId]);
 
-  // 3. ADAPTIVE HOP FILTERING ALGORITHM (User Vision):
-  // - If total devices in area > 5: Show devices with maximum 3 hops
-  // - If total devices in area <= 5: Show all devices with NO hop limit
+  // Adaptive Multi-Hop Logic
   const totalCount = allDiscoveredDevices.length;
   const isDenseArea = totalCount > 5;
   const visibleDevices = isDenseArea
     ? allDiscoveredDevices.filter((dev) => dev.hops <= 3)
     : allDiscoveredDevices;
 
-  // Manual Scan Trigger
+  // Radar Refresh
   const handleScanRadar = () => {
     setIsScanning(true);
     setTimeout(() => {
       setIsScanning(false);
-      // Simulate discovering an extra relay node in range
       const newPeerId = `VAJRA-${Math.floor(10000 + Math.random() * 90000)}`;
       if (!allDiscoveredDevices.some((d) => d.id === newPeerId)) {
         setAllDiscoveredDevices((prev) => [
@@ -213,7 +207,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     }, 1200);
   };
 
-  // Mesh SOS Broadcast
+  // Mesh SOS
   const handleTriggerMeshSOS = () => {
     if (onTriggerSOS) {
       onTriggerSOS();
@@ -221,7 +215,6 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     setSosSentBanner(true);
     setTimeout(() => setSosSentBanner(false), 5000);
 
-    // Broadcast across P2P bus
     try {
       const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
       bc.postMessage({
@@ -235,7 +228,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     }
   };
 
-  // Send Direct Message to a Peer Node
+  // Send Direct Message
   const handleSendPeerMessage = (e) => {
     e.preventDefault();
     if (!peerMessageText.trim() || !selectedPeer) return;
@@ -253,7 +246,6 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
       [selectedPeer.id]: [...(prev[selectedPeer.id] || []), newMsg],
     }));
 
-    // Broadcast over P2P mesh bus
     try {
       const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
       bc.postMessage({
@@ -274,72 +266,72 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     <div className="space-y-4 font-sans select-none pb-4">
       
       {/* ========================================================================= */}
-      {/* 1. UPPER SECTION (SMALLER TAB): CONTROL & CONNECTIVITY PANEL              */}
+      {/* 1. UPPER SECTION (SMALLER TAB): CONTROL & CONNECTIVITY PANEL (WHITE CARD) */}
       {/* ========================================================================= */}
-      <div className="bg-slate-900/95 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3.5 backdrop-blur-md">
+      <div className="bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-3.5">
         
         {/* Device ID + Network Indicator Row */}
         <div className="flex items-center justify-between gap-2">
           {/* My Device ID Badge */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-600/30">
-              <Radio className="w-4 h-4" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#0B2545] border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shadow-md">
+              <Radio className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 font-mono block">MY VAJRANET NODE</span>
-              <h3 className="text-sm font-black text-white font-mono tracking-wider">{myDeviceId}</h3>
+              <span className="text-[10px] text-slate-500 font-mono font-bold block">MY VAJRANET NODE</span>
+              <h3 className="text-sm font-black text-slate-900 font-mono tracking-wider">{myDeviceId}</h3>
             </div>
           </div>
 
           {/* Live Connectivity Indicator Pill */}
           <div className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center gap-1.5 border shadow-sm ${
             isOnline
-              ? 'bg-emerald-950/90 text-emerald-300 border-emerald-700/80'
-              : 'bg-amber-950/90 text-amber-300 border-amber-700/80'
+              ? 'bg-emerald-50 text-[#059669] border-emerald-300'
+              : 'bg-amber-50 text-amber-700 border-amber-300'
           }`}>
-            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
+            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-[#059669]' : 'bg-amber-500 animate-pulse'}`}></span>
             <span>{isOnline ? '🟢 Online Cloud Relay' : '🟠 Offline P2P Mesh'}</span>
           </div>
         </div>
 
         {/* Status Description Banner */}
-        <div className="bg-slate-950/80 rounded-2xl p-2.5 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between font-mono">
+        <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between font-mono">
           <span className="flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-blue-400" />
+            <Activity className="w-3.5 h-3.5 text-[#0077B6]" />
             <span>
               {isOnline
-                ? 'SOS & updates sync directly to Govt, Volunteer & Citizen feeds.'
-                : 'Hop-by-hop P2P mesh relay active until reaching a gateway.'}
+                ? 'Direct Cloud Relay: Syncs to Govt, Volunteer & Citizen feeds.'
+                : 'P2P Mesh Active: Multi-hop relay until reaching a gateway.'}
             </span>
           </span>
         </div>
 
         {/* SOS Confirmation Alert */}
         {sosSentBanner && (
-          <div className="bg-rose-950/90 border border-rose-600/90 rounded-2xl p-3 text-xs text-rose-200 flex items-center gap-2 animate-fadeIn">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 animate-bounce" />
-            <span>🚨 SOS Beacon Broadcasted across all 3 feeds (Govt, Volunteer, Citizen Alerts)!</span>
+          <div className="bg-rose-50 border border-rose-300 rounded-2xl p-3 text-xs text-rose-800 flex items-center gap-2 animate-fadeIn font-bold">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 animate-bounce" />
+            <span>🚨 SOS Beacon Transmitted across all 3 feeds!</span>
           </div>
         )}
 
-        {/* Controls Row: Refresh Radar + Mesh SOS Button */}
+        {/* Controls Row: Scan Radar + Mesh SOS Button */}
         <div className="grid grid-cols-2 gap-2 pt-1">
           {/* Refresh / Scan Radar */}
           <button
             onClick={handleScanRadar}
             disabled={isScanning}
-            className="py-2.5 px-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-2xl text-xs font-bold text-slate-200 transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+            className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-2xl text-xs font-bold text-slate-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isScanning ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-[#0077B6] ${isScanning ? 'animate-spin' : ''}`} />
             <span>{isScanning ? 'Scanning...' : 'Scan Radar'}</span>
           </button>
 
           {/* Mesh SOS Broadcast Button */}
           <button
             onClick={handleTriggerMeshSOS}
-            className="py-2.5 px-3 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-2xl text-xs font-black tracking-wider transition shadow-lg shadow-rose-600/40 flex items-center justify-center gap-1.5 cursor-pointer uppercase active:scale-95"
+            className="py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-black tracking-wider transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer uppercase active:scale-95"
           >
-            <AlertTriangle className="w-3.5 h-3.5" />
+            <AlertTriangle className="w-3.5 h-3.5 text-white" />
             <span>Mesh SOS</span>
           </button>
         </div>
@@ -347,20 +339,20 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. LOWER SECTION (LARGER TAB): NEARBY DISCOVERED DEVICES & RELAYS         */}
+      {/* 2. LOWER SECTION (LARGER TAB): NEARBY DISCOVERED DEVICES (WHITE CARD)     */}
       {/* ========================================================================= */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 lg:p-5 shadow-2xl space-y-3.5">
+      <div className="bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-3.5">
         
         {/* Section Header with Dynamic Adaptive Hop Policy Badge */}
-        <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
           <div>
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <span>📡 Available Nearby Devices</span>
-              <span className="text-[10px] bg-blue-950 text-blue-400 border border-blue-800 px-2 py-0.2 rounded-full font-mono font-bold">
+              <span className="text-[10px] bg-blue-100 text-[#0077B6] border border-blue-300 px-2 py-0.2 rounded-full font-mono font-bold">
                 {visibleDevices.length} In Range
               </span>
             </h2>
-            <p className="text-[10px] text-slate-400 mt-0.5">
+            <p className="text-[10px] text-slate-500 mt-0.5">
               Connect peer-to-peer to request local assistance, water, or relay an SOS.
             </p>
           </div>
@@ -369,8 +361,8 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
           <div className="text-right">
             <span className={`text-[9px] px-2 py-0.5 rounded-full font-mono font-bold border ${
               isDenseArea
-                ? 'bg-amber-950/80 text-amber-300 border-amber-700/80'
-                : 'bg-emerald-950/80 text-emerald-300 border-emerald-700/80'
+                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                : 'bg-emerald-100 text-emerald-800 border-emerald-300'
             }`}>
               {isDenseArea ? '⚡ Max 3 Hops' : '⚡ Extended (No Hop Limit)'}
             </span>
@@ -381,7 +373,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
         <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1">
           {visibleDevices.length === 0 ? (
             <div className="p-8 text-center text-xs text-slate-400 font-mono space-y-2">
-              <Radio className="w-8 h-8 text-slate-600 mx-auto animate-pulse" />
+              <Radio className="w-8 h-8 text-slate-400 mx-auto animate-pulse" />
               <p>Scanning local 500m mesh for VajraNet nodes...</p>
             </div>
           ) : (
@@ -392,24 +384,24 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
               return (
                 <div
                   key={dev.id}
-                  className="bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-2xl p-3.5 flex items-center justify-between gap-3 transition shadow-sm"
+                  className="bg-slate-50 border border-slate-200 hover:border-[#0077B6] rounded-2xl p-3.5 flex items-center justify-between gap-3 transition shadow-sm"
                 >
                   {/* Left: Device Info & Hop Count */}
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-black text-white">{dev.id}</span>
+                      <span className="font-mono text-xs font-black text-slate-900">{dev.id}</span>
                       {dev.isVerified && (
-                        <span className="text-[9px] bg-blue-950 text-blue-300 border border-blue-800 px-1.5 py-0.2 rounded font-mono font-bold">
+                        <span className="text-[9px] bg-blue-100 text-[#0077B6] border border-blue-300 px-1.5 py-0.2 rounded font-mono font-bold">
                           Verified
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs text-slate-300 font-medium">{dev.name} • <span className="text-slate-400 text-[10px]">{dev.role}</span></p>
+                    <p className="text-xs text-slate-700 font-medium">{dev.name} • <span className="text-slate-500 text-[10px]">{dev.role}</span></p>
 
                     {/* Hop Distance & Signal Telemetry */}
-                    <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 pt-0.5">
-                      <span className={`font-bold ${isDirect ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 pt-0.5">
+                      <span className={`font-bold ${isDirect ? 'text-[#059669]' : 'text-amber-700'}`}>
                         {isDirect ? '🟢 Direct (1 hop)' : `🟠 ${dev.hops} hops away`}
                       </span>
                       <span>•</span>
@@ -422,10 +414,10 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
                   {/* Right: Connect / Message Action */}
                   <button
                     onClick={() => setSelectedPeer(dev)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1.5 cursor-pointer shadow-md ${
+                    className={`px-3 py-2 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
                       hasLogs
-                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                        : 'bg-slate-900 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-800 hover:border-blue-500'
+                        ? 'bg-[#059669] hover:bg-[#047857] text-white'
+                        : 'bg-[#0077B6] hover:bg-[#005f92] text-white'
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -440,21 +432,21 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. PEER-TO-PEER DIRECT DISTRESS CHAT MODAL                                */}
+      {/* 3. PEER-TO-PEER DIRECT DISTRESS CHAT MODAL (CRISP WHITE CARD)             */}
       {/* ========================================================================= */}
       {selectedPeer && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-md w-full h-[70vh] flex flex-col justify-between shadow-2xl space-y-3">
+        <div className="fixed inset-0 bg-[#07172C]/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 max-w-md w-full h-[70vh] flex flex-col justify-between shadow-2xl space-y-3">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-950 border border-blue-700/80 flex items-center justify-center text-blue-400">
+                <div className="w-8 h-8 rounded-xl bg-blue-100 border border-blue-300 flex items-center justify-center text-[#0077B6]">
                   <Radio className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-black text-white font-mono">{selectedPeer.id} ({selectedPeer.name})</h3>
-                  <p className="text-[10px] text-slate-400 font-mono">
+                  <h3 className="text-xs font-black text-slate-900 font-mono">{selectedPeer.id} ({selectedPeer.name})</h3>
+                  <p className="text-[10px] text-slate-500 font-mono">
                     {selectedPeer.hops === 1 ? 'Direct Link' : `${selectedPeer.hops} Hops Relay`} • Signal: {selectedPeer.signalDbm}dBm
                   </p>
                 </div>
@@ -462,30 +454,30 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
 
               <button
                 onClick={() => setSelectedPeer(null)}
-                className="p-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Chat Log Stream */}
-            <div className="flex-1 bg-slate-950/90 rounded-2xl p-3.5 overflow-y-auto space-y-2.5 border border-slate-800/80">
+            <div className="flex-1 bg-slate-50 rounded-2xl p-3.5 overflow-y-auto space-y-2.5 border border-slate-200">
               {(!peerChatLogs[selectedPeer.id] || peerChatLogs[selectedPeer.id].length === 0) ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-500 text-xs font-mono space-y-2">
-                  <MessageSquare className="w-6 h-6 text-slate-600" />
+                  <MessageSquare className="w-6 h-6 text-slate-400" />
                   <p>Encrypted P2P Link Established with {selectedPeer.id}.</p>
-                  <p className="text-[10px]">Send a message, ask for help, or share emergency status.</p>
+                  <p className="text-[10px]">Send a message, request emergency assistance, or share coordinates.</p>
                 </div>
               ) : (
                 peerChatLogs[selectedPeer.id].map((msg) => (
                   <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] rounded-2xl p-3 text-xs leading-relaxed ${
+                    <div className={`max-w-[80%] rounded-2xl p-3 text-xs leading-relaxed shadow-sm ${
                       msg.isMe
-                        ? 'bg-blue-600 text-white rounded-br-none'
-                        : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
+                        ? 'bg-[#0077B6] text-white rounded-br-none'
+                        : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
                     }`}>
                       <p>{msg.text}</p>
-                      <span className="text-[9px] opacity-70 block text-right mt-1 font-mono">{msg.time}</span>
+                      <span className="text-[9px] opacity-75 block text-right mt-1 font-mono">{msg.time}</span>
                     </div>
                   </div>
                 ))
@@ -499,11 +491,11 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
                 value={peerMessageText}
                 onChange={(e) => setPeerMessageText(e.target.value)}
                 placeholder={`Message ${selectedPeer.name}...`}
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-[#0077B6] focus:bg-white"
               />
               <button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-xl transition cursor-pointer"
+                className="bg-[#0077B6] hover:bg-[#005f92] text-white p-2.5 rounded-xl transition cursor-pointer"
               >
                 <Send className="w-4 h-4" />
               </button>
