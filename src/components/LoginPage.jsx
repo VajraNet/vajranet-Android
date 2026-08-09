@@ -7,14 +7,10 @@ import {
   User, 
   Radio, 
   CheckCircle2, 
-  AlertCircle,
-  Building2,
-  HeartPulse,
-  Package
+  AlertCircle
 } from 'lucide-react';
 
 export default function LoginPage({ onLoginSuccess, onSkip }) {
-  const [activeRoleTab, setActiveRoleTab] = useState('CITIZEN'); // 'CITIZEN' | 'RESPONDER' | 'LOGISTICS'
   const [step, setStep] = useState('phone'); // 'phone' | 'otp' | 'name'
   const [phone, setPhone] = useState('9876543210');
   const [otp, setOtp] = useState(['8', '2', '9', '1', '0', '4']);
@@ -70,7 +66,7 @@ export default function LoginPage({ onLoginSuccess, onSkip }) {
       isGuest: false,
       name: cleanName,
       phone: phone,
-      role: activeRoleTab,
+      role: 'CITIZEN',
       registeredAt: new Date().toISOString()
     };
     onLoginSuccess(userData);
@@ -88,22 +84,12 @@ export default function LoginPage({ onLoginSuccess, onSkip }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#07172C] via-[#0E294B] to-[#07172C] text-slate-900 flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-gradient-to-b from-[#07172C] via-[#0E294B] to-[#07172C] text-slate-900 flex flex-col font-sans select-none justify-center items-center px-4 py-8">
       
-      {/* ==================== 1. TOP GOVT OF INDIA STRIP ==================== */}
-      <div className="bg-[#050F1D] text-[#D4AF37] px-4 py-1.5 text-[11px] font-semibold flex items-center justify-between border-b border-[#D4AF37]/30 tracking-wide font-mono">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse"></span>
-          <span>GOVERNMENT OF INDIA • National Disaster Management Authority (NDMA)</span>
-        </div>
-        <span className="hidden sm:inline text-slate-400">SIH2026 • VajraNet Block</span>
-      </div>
-
-      {/* ==================== 2. MAIN CONTAINER ==================== */}
-      <div className="flex-1 flex flex-col justify-center items-center px-4 py-8 max-w-md mx-auto w-full">
+      <div className="max-w-md mx-auto w-full space-y-6">
         
         {/* Emblem & Portal Branding */}
-        <div className="text-center space-y-2 mb-6">
+        <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#0B2545] border-2 border-[#D4AF37] shadow-xl p-1">
             <div className="w-full h-full rounded-full bg-[#07172C] flex items-center justify-center text-[#D4AF37]">
               <Shield className="w-8 h-8 text-[#D4AF37]" />
@@ -112,201 +98,149 @@ export default function LoginPage({ onLoginSuccess, onSkip }) {
 
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">
-              VajraNet Emergency Portal
+              VajraNet Citizen Portal
             </h1>
             <p className="text-xs text-[#D4AF37] font-medium mt-0.5 font-mono">
-              Ministry of Home Affairs • Disaster Response & P2P Mesh Network
+              Offline-First Emergency Communication & Mesh Network
             </p>
           </div>
         </div>
 
-        {/* High-Contrast Crisp White Card (SehatConnect Signature Style) */}
-        <div className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+        {/* High-Contrast Crisp White Card */}
+        <div className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 p-6 space-y-4">
           
-          {/* 3 Role Tabs Switcher */}
-          <div className="grid grid-cols-3 bg-slate-100 border-b border-slate-200 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setActiveRoleTab('CITIZEN')}
-              className={`py-3 flex items-center justify-center gap-1.5 transition ${
-                activeRoleTab === 'CITIZEN'
-                  ? 'bg-[#059669] text-white shadow-md'
-                  : 'text-slate-600 hover:bg-slate-200/70'
-              }`}
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>Citizen</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveRoleTab('RESPONDER')}
-              className={`py-3 flex items-center justify-center gap-1.5 transition ${
-                activeRoleTab === 'RESPONDER'
-                  ? 'bg-[#0077B6] text-white shadow-md'
-                  : 'text-slate-600 hover:bg-slate-200/70'
-              }`}
-            >
-              <HeartPulse className="w-3.5 h-3.5" />
-              <span>Responder</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveRoleTab('LOGISTICS')}
-              className={`py-3 flex items-center justify-center gap-1.5 transition ${
-                activeRoleTab === 'LOGISTICS'
-                  ? 'bg-[#7E22CE] text-white shadow-md'
-                  : 'text-slate-600 hover:bg-slate-200/70'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" />
-              <span>Relief Hub</span>
-            </button>
+          <div className="text-center pb-1">
+            <h2 className="text-sm font-bold text-slate-900">Citizen Mobile Sign In</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Enter your mobile number for emergency rescue dispatch identification
+            </p>
           </div>
 
-          {/* Form Body Area */}
-          <div className="p-6 space-y-4">
-            
-            <p className="text-center text-xs text-slate-500 font-medium">
-              {activeRoleTab === 'CITIZEN' && 'Login with your Mobile Number & 6-digit OTP'}
-              {activeRoleTab === 'RESPONDER' && 'Restricted NDRF Volunteer & Field Officer Access'}
-              {activeRoleTab === 'LOGISTICS' && 'Relief Depot & Supply Inventory Dispatch Portal'}
-            </p>
-
-            {errorMsg && (
-              <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            {/* STEP 1: Phone Number */}
-            {step === 'phone' && (
-              <form onSubmit={handleSendOtp} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700">Phone Number</label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-3 text-slate-500 text-xs font-mono font-bold">+91</span>
-                    <input
-                      type="tel"
-                      required
-                      maxLength={10}
-                      placeholder="9876543210"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                      className="w-full bg-slate-50 border border-slate-300 focus:border-[#059669] focus:bg-white rounded-xl pl-12 pr-4 py-2.5 text-sm text-slate-900 font-mono tracking-wider focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`w-full py-3 text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer ${
-                    activeRoleTab === 'CITIZEN'
-                      ? 'bg-[#059669] hover:bg-[#047857]'
-                      : activeRoleTab === 'RESPONDER'
-                      ? 'bg-[#0077B6] hover:bg-[#005f92]'
-                      : 'bg-[#7E22CE] hover:bg-[#6b1cb0]'
-                  }`}
-                >
-                  <span>{isSubmitting ? 'Sending OTP...' : `Login as ${activeRoleTab === 'CITIZEN' ? 'Citizen' : activeRoleTab === 'RESPONDER' ? 'Responder' : 'Relief'} →`}</span>
-                </button>
-              </form>
-            )}
-
-            {/* STEP 2: 6-Digit OTP */}
-            {step === 'otp' && (
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700">Enter 6-Digit OTP</label>
-                    <button
-                      type="button"
-                      onClick={() => setStep('phone')}
-                      className="text-[11px] text-[#059669] hover:underline font-bold"
-                    >
-                      Edit (+91 {phone})
-                    </button>
-                  </div>
-
-                  {/* Demo OTP Box */}
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center justify-between text-xs text-emerald-800">
-                    <span>Auto-filled OTP: <strong className="font-mono text-sm tracking-widest text-emerald-900">{generatedOtp}</strong></span>
-                    <span className="text-[10px] bg-[#059669] text-white px-2 py-0.5 rounded font-mono font-bold">READY</span>
-                  </div>
-
-                  <div className="grid grid-cols-6 gap-2">
-                    {otp.map((digit, idx) => (
-                      <input
-                        key={idx}
-                        id={`otp-input-${idx}`}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(idx, e.target.value)}
-                        className="w-full h-11 text-center bg-slate-50 border border-slate-300 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-[#059669] focus:bg-white font-mono shadow-sm"
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-[#059669] hover:bg-[#047857] text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <KeyRound className="w-4 h-4" />
-                  <span>Verify OTP Code →</span>
-                </button>
-              </form>
-            )}
-
-            {/* STEP 3: Full Name */}
-            {step === 'name' && (
-              <form onSubmit={handleCompleteRegistration} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700">Citizen Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Rohan Sharma"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 focus:border-[#059669] focus:bg-white rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none transition"
-                  />
-                  <p className="text-[10px] text-slate-500">Used by rescue teams when you send an emergency beacon.</p>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-[#059669] hover:bg-[#047857] text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Complete & Enter Portal →</span>
-                </button>
-              </form>
-            )}
-
-            {/* Skip for Now Link */}
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                onClick={handleSkipForNow}
-                className="text-xs text-slate-500 hover:text-[#0077B6] font-bold transition hover:underline cursor-pointer"
-              >
-                Skip for Now (Continue as Guest Citizen) →
-              </button>
+          {errorMsg && (
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-700 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{errorMsg}</span>
             </div>
+          )}
 
+          {/* STEP 1: Phone Number */}
+          {step === 'phone' && (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">Phone Number</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-3 text-slate-500 text-xs font-mono font-bold">+91</span>
+                  <input
+                    type="tel"
+                    required
+                    maxLength={10}
+                    placeholder="9876543210"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-slate-50 border border-slate-300 focus:border-[#059669] focus:bg-white rounded-xl pl-12 pr-4 py-2.5 text-sm text-slate-900 font-mono tracking-wider focus:outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 bg-[#059669] hover:bg-[#047857] text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>{isSubmitting ? 'Sending OTP...' : 'Send Verification OTP →'}</span>
+              </button>
+            </form>
+          )}
+
+          {/* STEP 2: 6-Digit OTP */}
+          {step === 'otp' && (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700">Enter 6-Digit OTP</label>
+                  <button
+                    type="button"
+                    onClick={() => setStep('phone')}
+                    className="text-[11px] text-[#059669] hover:underline font-bold"
+                  >
+                    Edit (+91 {phone})
+                  </button>
+                </div>
+
+                {/* Demo OTP Box */}
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center justify-between text-xs text-emerald-800">
+                  <span>Auto-filled OTP: <strong className="font-mono text-sm tracking-widest text-emerald-900">{generatedOtp}</strong></span>
+                  <span className="text-[10px] bg-[#059669] text-white px-2 py-0.5 rounded font-mono font-bold">READY</span>
+                </div>
+
+                <div className="grid grid-cols-6 gap-2">
+                  {otp.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      id={`otp-input-${idx}`}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(idx, e.target.value)}
+                      className="w-full h-11 text-center bg-slate-50 border border-slate-300 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-[#059669] focus:bg-white font-mono shadow-sm"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#059669] hover:bg-[#047857] text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>Verify OTP Code →</span>
+              </button>
+            </form>
+          )}
+
+          {/* STEP 3: Full Name */}
+          {step === 'name' && (
+            <form onSubmit={handleCompleteRegistration} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">Citizen Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Rohan Sharma"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-[#059669] focus:bg-white rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none transition"
+                />
+                <p className="text-[10px] text-slate-500">Used by rescue teams when you send an emergency beacon.</p>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#059669] hover:bg-[#047857] text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Complete & Enter Portal →</span>
+              </button>
+            </form>
+          )}
+
+          {/* Skip for Now Link */}
+          <div className="pt-2 text-center border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleSkipForNow}
+              className="text-xs text-slate-500 hover:text-[#0077B6] font-bold transition hover:underline cursor-pointer"
+            >
+              Skip for Now (Continue as Guest Citizen) →
+            </button>
           </div>
 
         </div>
 
         {/* Footer Security Badges */}
-        <p className="text-center text-[10px] text-slate-400 font-mono mt-6">
-          Govt. of India • NIC Certified • IT Act 2000 Protected • VajraNet P2P Protocol
+        <p className="text-center text-[10px] text-slate-400 font-mono">
+          VajraNet P2P Protocol v2.4 • End-to-End Encrypted Off-Grid Mesh
         </p>
 
       </div>

@@ -27,13 +27,34 @@ import {
   ChevronRight,
   Sparkles,
   ArrowLeft,
-  Shield
+  Shield,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import LoginPage from './LoginPage';
 import MeshChat from './MeshChat';
 
 export default function CitizenApp() {
+  // Theme State: 'dark' | 'light'
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('vajranet_theme') || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    try {
+      localStorage.setItem('vajranet_theme', nextTheme);
+    } catch (e) {
+      console.warn('Failed to save theme', e);
+    }
+  };
+
   // Navigation State: 'home' | 'help' | 'mesh' | 'alerts' | 'ai' | 'report'
   const [activeTab, setActiveTab] = useState('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -171,7 +192,7 @@ export default function CitizenApp() {
     } catch {
       setShelters([
         { id: 'SH-1', name: 'Sector 4 Indoor Stadium Relief Camp', address: 'Sports Complex, Sector 4', capacity: 800, available_capacity: 340, status: 'OPEN', distance_km: 0.8 },
-        { id: 'SH-2', name: 'Govt Model High School Shelter', address: 'Station Road, Gate 1', capacity: 400, available_capacity: 20, status: 'OPEN', distance_km: 1.4 }
+        { id: 'SH-2', name: 'Model High School Shelter', address: 'Station Road, Gate 1', capacity: 400, available_capacity: 20, status: 'OPEN', distance_km: 1.4 }
       ]);
     }
 
@@ -192,7 +213,7 @@ export default function CitizenApp() {
       setReliefCenters([
         { 
           id: 'RC-1', 
-          name: 'NDRF Central Ration & Water Depot', 
+          name: 'VajraNet Central Ration & Water Depot', 
           address: 'Community Hall Block B', 
           supplies: { food: 'Available', water: 'Available', medicine: 'Limited', blankets: 'Available' },
           distance_km: 0.9 
@@ -356,34 +377,62 @@ export default function CitizenApp() {
     );
   }
 
-  return (
-    <div className="max-w-md mx-auto min-h-screen bg-gradient-to-b from-[#07172C] via-[#0E294B] to-[#07172C] text-slate-900 flex flex-col font-sans select-none">
-      
-      {/* ==================== 1. TOP GOVT OF INDIA STRIP ==================== */}
-      <div className="sticky top-0 z-50 bg-[#050F1D] text-[#D4AF37] px-3 py-1.5 text-[10px] font-semibold flex items-center justify-between border-b border-[#D4AF37]/30 tracking-wide font-mono">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse"></span>
-          <span>GOVT. OF INDIA • NDMA DISASTER PORTAL</span>
-        </div>
-        <span className="text-slate-400">SIH2026</span>
-      </div>
+  const isDark = theme === 'dark';
 
-      {/* ==================== 2. OFFICIAL HEADER BAR ==================== */}
-      <header className="bg-[#0B2545]/95 backdrop-blur-md border-b border-[#D4AF37]/40 px-4 py-2.5 shadow-md flex items-center justify-between text-white sticky top-7 z-40">
+  return (
+    <div className={`max-w-md mx-auto min-h-screen ${
+      isDark 
+        ? 'bg-gradient-to-b from-[#07172C] via-[#0E294B] to-[#07172C] text-slate-100' 
+        : 'bg-gradient-to-b from-[#F1F5F9] via-[#E2E8F0] to-[#F1F5F9] text-slate-900'
+    } flex flex-col font-sans select-none transition-colors duration-300`}>
+      
+      {/* ==================== 1. VAJRANET HEADER BAR ==================== */}
+      <header className={`px-4 py-2.5 shadow-md flex items-center justify-between sticky top-0 z-40 transition-colors ${
+        isDark 
+          ? 'bg-[#0B2545]/95 backdrop-blur-md border-b border-[#D4AF37]/40 text-white' 
+          : 'bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-900'
+      }`}>
         <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-full bg-[#07172C] border border-[#D4AF37] flex items-center justify-center shadow-md">
+          <div className={`w-8 h-8 rounded-full border flex items-center justify-center shadow-md ${
+            isDark ? 'bg-[#07172C] border-[#D4AF37]' : 'bg-[#0B2545] border-[#D4AF37]'
+          }`}>
             <Shield className="w-4 h-4 text-[#D4AF37]" />
           </div>
           <div>
-            <span className="font-black text-sm tracking-wide text-white block">VAJRANET</span>
-            <span className="text-[10px] text-[#D4AF37] font-mono block -mt-0.5">
+            <span className="font-black text-sm tracking-wide block">VAJRANET</span>
+            <span className={`text-[10px] font-mono block -mt-0.5 ${isDark ? 'text-[#D4AF37]' : 'text-amber-700 font-bold'}`}>
               {user.isGuest ? 'Citizen (Guest)' : user.name}
             </span>
           </div>
         </div>
 
-        {/* High-Visibility Network Status Pill */}
+        {/* Action Controls: Theme Switcher & Logout */}
         <div className="flex items-center gap-2">
+          
+          {/* Light / Dark Mode Toggle Button (Replaced Connected Button) */}
+          <button
+            onClick={toggleTheme}
+            className={`px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm active:scale-95 border ${
+              isDark 
+                ? 'bg-[#07172C] hover:bg-[#0E294B] border-[#D4AF37]/60 text-[#D4AF37]' 
+                : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+            }`}
+            title="Toggle Light/Dark Theme"
+          >
+            {isDark ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[10px]">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-blue-600" />
+                <span className="text-[10px]">Dark</span>
+              </>
+            )}
+          </button>
+
+          {/* Queue Indicator if items buffered */}
           {offlineQueue.length > 0 && (
             <button
               onClick={syncOfflineQueue}
@@ -395,36 +444,27 @@ export default function CitizenApp() {
             </button>
           )}
 
-          <div className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1.5 border shadow-sm ${
-            isOnline 
-              ? 'bg-[#059669]/20 text-emerald-300 border-emerald-500/50' 
-              : 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
-            <span>{isOnline ? '🟢 Connected' : '🟠 Offline Mesh'}</span>
-          </div>
-
           <button
             onClick={() => {
               localStorage.removeItem('vajranet_citizen_user');
               setUser(null);
             }}
             title="Log Out"
-            className="text-slate-400 hover:text-rose-400 p-1 transition"
+            className={`${isDark ? 'text-slate-400 hover:text-rose-400' : 'text-slate-500 hover:text-rose-600'} p-1 transition cursor-pointer`}
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* ==================== 3. MAIN CONTENT CANVAS ==================== */}
+      {/* ==================== 2. MAIN CONTENT CANVAS ==================== */}
       <main className="flex-1 p-4 pb-24 overflow-y-auto space-y-4">
         
         {/* ===================== VIEW 1: HOME (EMERGENCY FIRST) ===================== */}
         {activeTab === 'home' && (
           <div className="space-y-4">
             
-            {/* ⚠️ Official Government Alert Card (SehatConnect Style) */}
+            {/* ⚠️ Official Emergency Alert Card */}
             {announcements.length > 0 && (
               <div 
                 onClick={() => setActiveTab('alerts')}
@@ -436,7 +476,7 @@ export default function CitizenApp() {
                   </div>
                   <div>
                     <span className="text-[9px] font-mono bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold uppercase">
-                      OFFICIAL ADVISORY
+                      DISASTER BROADCAST
                     </span>
                     <h3 className="text-xs font-bold text-slate-900 mt-0.5">{announcements[0].title}</h3>
                     <p className="text-[11px] text-slate-600 line-clamp-1">{announcements[0].content}</p>
@@ -456,7 +496,7 @@ export default function CitizenApp() {
                   </span>
                   <h2 className="text-xl font-black text-slate-900 tracking-tight">TRANSMIT SOS BEACON</h2>
                   <p className="text-xs text-slate-500">
-                    Broadcasts your GPS coordinates to NDRF, Volunteers, and Citizen feeds.
+                    Broadcasts your GPS coordinates to Responders and nearby Citizens.
                   </p>
                 </div>
 
@@ -470,7 +510,7 @@ export default function CitizenApp() {
                     <AlertTriangle className="w-10 h-10 mb-1 animate-pulse text-white" />
                     <span>SOS</span>
                     <span className="text-[10px] tracking-normal font-bold text-rose-100 mt-0.5">
-                      {sosSubmitting ? 'DISPATCHING...' : 'TAP FOR RESCUE'}
+                      {sosSubmitting ? 'DISPATCHING...' : 'TAP FOR HELP'}
                     </span>
                   </button>
                 </div>
@@ -482,7 +522,7 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setSosType('CRITICAL')}
-                      className={`py-2 rounded-xl border transition ${
+                      className={`py-2 rounded-xl border transition cursor-pointer ${
                         sosType === 'CRITICAL' ? 'bg-rose-600 text-white border-rose-600 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200'
                       }`}
                     >
@@ -491,7 +531,7 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setSosType('HIGH')}
-                      className={`py-2 rounded-xl border transition ${
+                      className={`py-2 rounded-xl border transition cursor-pointer ${
                         sosType === 'HIGH' ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200'
                       }`}
                     >
@@ -500,7 +540,7 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setSosType('MEDIUM')}
-                      className={`py-2 rounded-xl border transition ${
+                      className={`py-2 rounded-xl border transition cursor-pointer ${
                         sosType === 'MEDIUM' ? 'bg-[#0077B6] text-white border-[#0077B6] shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200'
                       }`}
                     >
@@ -526,7 +566,7 @@ export default function CitizenApp() {
                   <h2 className="text-xl font-black text-slate-900 mt-0.5">SOS #{assignedSosId}</h2>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                     {isOnline 
-                      ? 'Transmitted directly to Government NDRF Command & Volunteer boards.' 
+                      ? 'Transmitted directly to Command & Volunteer boards.' 
                       : 'Relaying peer-to-peer over Bluetooth & Wi-Fi Direct mesh.'}
                   </p>
                 </div>
@@ -553,8 +593,8 @@ export default function CitizenApp() {
 
             {/* "EMERGENCY SERVICES & RESOURCES" 4 CRISP WHITE CARDS */}
             <div className="space-y-2 pt-2">
-              <h3 className="text-xs font-bold text-[#D4AF37] uppercase tracking-wider font-mono">
-                Official Emergency Services
+              <h3 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? 'text-[#D4AF37]' : 'text-slate-700'}`}>
+                Emergency Services & Resources
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 
@@ -633,19 +673,19 @@ export default function CitizenApp() {
         {activeTab === 'help' && (
           <div className="space-y-4">
             
-            <div className="flex items-center justify-between pb-2 border-b border-[#D4AF37]/30">
-              <h2 className="text-base font-black text-white flex items-center gap-2">
+            <div className={`flex items-center justify-between pb-2 border-b ${isDark ? 'border-[#D4AF37]/30' : 'border-slate-300'}`}>
+              <h2 className={`text-base font-black flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 <span>📍 Nearby Emergency Help</span>
               </h2>
               <button 
                 onClick={loadResources}
-                className="text-[10px] text-[#D4AF37] font-mono flex items-center gap-1 cursor-pointer font-bold"
+                className={`text-[10px] font-mono flex items-center gap-1 cursor-pointer font-bold ${isDark ? 'text-[#D4AF37]' : 'text-blue-700'}`}
               >
                 <RefreshCw className="w-3 h-3" /> Refresh
               </button>
             </div>
 
-            {/* 3 Segmented Sub-Tabs (SehatConnect Style) */}
+            {/* 3 Segmented Sub-Tabs */}
             <div className="grid grid-cols-3 bg-white p-1 rounded-2xl border border-slate-200 text-xs font-bold shadow-md">
               <button
                 onClick={() => setHelpSubTab('shelters')}
@@ -776,7 +816,7 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== VIEW 3: OFFLINE P2P MESH & CHAT (THE CORE FEATURE) ===================== */}
+        {/* ===================== VIEW 3: OFFLINE P2P MESH & CHAT ===================== */}
         {activeTab === 'mesh' && (
           <div className="space-y-3 animate-fadeIn">
             <MeshChat user={user} gpsCoords={gpsCoords} onTriggerSOS={handleSendSOS} />
@@ -786,7 +826,7 @@ export default function CitizenApp() {
         {/* ===================== VIEW 4: CITIZEN ALERTS & DISASTER BROADCASTS ===================== */}
         {activeTab === 'alerts' && (
           <div className="space-y-4">
-            <h2 className="text-base font-black text-white flex items-center gap-2 pb-2 border-b border-[#D4AF37]/30">
+            <h2 className={`text-base font-black flex items-center gap-2 pb-2 border-b ${isDark ? 'border-[#D4AF37]/30 text-white' : 'border-slate-300 text-slate-900'}`}>
               <span>📢 Citizen Alerts & Distress Broadcasts</span>
             </h2>
 
@@ -809,10 +849,10 @@ export default function CitizenApp() {
                           ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse'
                           : 'bg-blue-100 text-blue-800 border-blue-300'
                       }`}>
-                        {isLiveDistress ? '🚨 LIVE CITIZEN SOS' : (ann.severity || 'OFFICIAL BROADCAST')}
+                        {isLiveDistress ? '🚨 LIVE CITIZEN SOS' : (ann.severity || 'DISASTER BROADCAST')}
                       </span>
                       <span className="text-[10px] text-slate-500 font-mono">
-                        {isLiveDistress ? '📡 P2P Mesh Relayed' : 'Verified Govt NDMA'}
+                        {isLiveDistress ? '📡 P2P Mesh Relayed' : 'Verified Alert'}
                       </span>
                     </div>
 
@@ -833,13 +873,13 @@ export default function CitizenApp() {
         {/* ===================== VIEW 5: AI SAFETY ASSISTANT ===================== */}
         {activeTab === 'ai' && (
           <div className="space-y-4 flex flex-col h-[74vh]">
-            <div className="pb-2 border-b border-[#D4AF37]/30 flex items-center justify-between">
+            <div className={`pb-2 border-b flex items-center justify-between ${isDark ? 'border-[#D4AF37]/30' : 'border-slate-300'}`}>
               <div>
-                <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <h2 className={`text-sm font-bold flex items-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   <Sparkles className="w-4 h-4 text-[#D4AF37]" />
                   <span>AI Disaster Survival Protocol</span>
                 </h2>
-                <p className="text-[10px] text-slate-300">Offline-ready emergency protocols & first-aid procedures</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Offline-ready emergency protocols & first-aid procedures</p>
               </div>
             </div>
 
@@ -866,7 +906,7 @@ export default function CitizenApp() {
             </div>
 
             {/* Input Bar */}
-            <form onSubmit={handleAskAI} className="flex items-center space-x-2 pt-2 border-t border-slate-800">
+            <form onSubmit={handleAskAI} className="flex items-center space-x-2 pt-2 border-t border-slate-300">
               <input
                 type="text"
                 placeholder="Ask emergency protocol question..."
@@ -888,7 +928,7 @@ export default function CitizenApp() {
         {/* ===================== VIEW 6: REPORT DISASTER INCIDENT ===================== */}
         {activeTab === 'report' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#D4AF37]/30">
+            <div className={`flex items-center justify-between pb-2 border-b ${isDark ? 'border-[#D4AF37]/30' : 'border-slate-300'}`}>
               <div className="flex items-center space-x-2">
                 <button 
                   onClick={() => setActiveTab('home')}
@@ -896,7 +936,7 @@ export default function CitizenApp() {
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h2 className="text-sm font-bold text-white">Report Disaster Hazard</h2>
+                <h2 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Report Disaster Hazard</h2>
               </div>
             </div>
 
@@ -963,7 +1003,7 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setIncidentSeverity('CRITICAL')}
-                      className={`py-1.5 rounded-xl border ${
+                      className={`py-1.5 rounded-xl border cursor-pointer ${
                         incidentSeverity === 'CRITICAL' ? 'bg-rose-600 text-white border-rose-600' : 'bg-slate-50 text-slate-600 border-slate-300'
                       }`}
                     >
@@ -972,7 +1012,7 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setIncidentSeverity('HIGH')}
-                      className={`py-1.5 rounded-xl border ${
+                      className={`py-1.5 rounded-xl border cursor-pointer ${
                         incidentSeverity === 'HIGH' ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-slate-600 border-slate-300'
                       }`}
                     >
@@ -981,7 +1021,7 @@ export default function CitizenApp() {
                     <button
                       type="button"
                       onClick={() => setIncidentSeverity('MEDIUM')}
-                      className={`py-1.5 rounded-xl border ${
+                      className={`py-1.5 rounded-xl border cursor-pointer ${
                         incidentSeverity === 'MEDIUM' ? 'bg-[#0077B6] text-white border-[#0077B6]' : 'bg-slate-50 text-slate-600 border-slate-300'
                       }`}
                     >
@@ -1003,14 +1043,20 @@ export default function CitizenApp() {
 
       </main>
 
-      {/* ==================== 4. OFFICIAL BOTTOM NAVIGATION BAR ==================== */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#07172C]/95 backdrop-blur-md border-t-2 border-[#D4AF37]/50 px-1 py-1.5 flex items-center justify-around z-50 shadow-2xl">
+      {/* ==================== 3. BOTTOM NAVIGATION BAR ==================== */}
+      <nav className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto px-1 py-1.5 flex items-center justify-around z-50 shadow-2xl transition-colors ${
+        isDark 
+          ? 'bg-[#07172C]/95 backdrop-blur-md border-t-2 border-[#D4AF37]/50' 
+          : 'bg-white/95 backdrop-blur-md border-t border-slate-300'
+      }`}>
         
         {/* 1. Home */}
         <button
           onClick={() => setActiveTab('home')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
-            activeTab === 'home' ? 'text-[#D4AF37] font-bold' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'home' 
+              ? (isDark ? 'text-[#D4AF37] font-bold' : 'text-[#059669] font-bold') 
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <Home className="w-5 h-5" />
@@ -1021,7 +1067,9 @@ export default function CitizenApp() {
         <button
           onClick={() => setActiveTab('help')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
-            activeTab === 'help' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'help' 
+              ? (isDark ? 'text-emerald-400 font-bold' : 'text-[#059669] font-bold') 
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <Navigation className="w-5 h-5" />
@@ -1041,7 +1089,9 @@ export default function CitizenApp() {
             <Radio className="w-6 h-6 animate-pulse text-[#D4AF37]" />
           </div>
           <span className={`text-[10px] mt-0.5 font-bold font-mono tracking-tight ${
-            activeTab === 'mesh' ? 'text-[#D4AF37]' : 'text-slate-400'
+            activeTab === 'mesh' 
+              ? (isDark ? 'text-[#D4AF37]' : 'text-amber-700') 
+              : 'text-slate-400'
           }`}>
             Offline Mesh
           </span>
@@ -1051,7 +1101,9 @@ export default function CitizenApp() {
         <button
           onClick={() => setActiveTab('alerts')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
-            activeTab === 'alerts' ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'alerts' 
+              ? (isDark ? 'text-amber-400 font-bold' : 'text-amber-600 font-bold') 
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <AlertTriangle className="w-5 h-5" />
@@ -1062,7 +1114,9 @@ export default function CitizenApp() {
         <button
           onClick={() => setActiveTab('ai')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
-            activeTab === 'ai' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'ai' 
+              ? (isDark ? 'text-blue-400 font-bold' : 'text-[#0077B6] font-bold') 
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <MessageSquare className="w-5 h-5" />
