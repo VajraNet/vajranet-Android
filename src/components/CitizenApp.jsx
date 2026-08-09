@@ -29,7 +29,9 @@ import {
   ArrowLeft,
   Shield,
   Sun,
-  Moon
+  Moon,
+  X,
+  Maximize2
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import LoginPage from './LoginPage';
@@ -55,10 +57,14 @@ export default function CitizenApp() {
     }
   };
 
-  // Navigation State: 'home' | 'help' | 'mesh' | 'alerts' | 'ai' | 'report'
+  // Navigation State: 'home' | 'help' | 'mesh' | 'alerts' | 'profile' | 'report'
   const [activeTab, setActiveTab] = useState('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [gpsCoords, setGpsCoords] = useState({ lat: 28.6139, lon: 77.2090, accuracy: 'High (4m)' });
+
+  // Floating VajraAI Modal State
+  const [showVajraAiModal, setShowVajraAiModal] = useState(false);
+  const [useVercelIframe, setUseVercelIframe] = useState(true);
 
   // SOS Emergency State
   const [sosSent, setSosSent] = useState(false);
@@ -92,12 +98,12 @@ export default function CitizenApp() {
   const [announcements, setAnnouncements] = useState([]);
   const [helpSubTab, setHelpSubTab] = useState('shelters'); // 'shelters' | 'hospitals' | 'relief'
 
-  // AI survival query state
+  // AI survival query state (Local fallback)
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiMessages, setAiMessages] = useState([
     { 
       sender: 'ai', 
-      text: 'Namaste. I am the VajraNet Safety Protocol Advisor. Ask me for first-aid procedures, flood evacuation safety, or locating nearest medical care.' 
+      text: 'Namaste. I am VajraAI Emergency Intelligence Engine. Ask me for first-aid procedures, flood evacuation safety, or locating nearest medical care.' 
     }
   ]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -378,13 +384,14 @@ export default function CitizenApp() {
   }
 
   const isDark = theme === 'dark';
+  const myDeviceId = localStorage.getItem('vajranet_device_id') || 'VAJRA-32647';
 
   return (
     <div className={`max-w-md mx-auto min-h-screen ${
       isDark 
         ? 'bg-gradient-to-b from-[#07172C] via-[#0E294B] to-[#07172C] text-slate-100' 
         : 'bg-gradient-to-b from-[#F1F5F9] via-[#E2E8F0] to-[#F1F5F9] text-slate-900'
-    } flex flex-col font-sans select-none transition-colors duration-300`}>
+    } flex flex-col font-sans select-none transition-colors duration-300 relative`}>
       
       {/* ==================== 1. VAJRANET HEADER BAR ==================== */}
       <header className={`px-4 py-2.5 shadow-md flex items-center justify-between sticky top-0 z-40 transition-colors ${
@@ -409,7 +416,7 @@ export default function CitizenApp() {
         {/* Action Controls: Theme Switcher & Logout */}
         <div className="flex items-center gap-2">
           
-          {/* Light / Dark Mode Toggle Button (Replaced Connected Button) */}
+          {/* Light / Dark Mode Toggle Button */}
           <button
             onClick={toggleTheme}
             className={`px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm active:scale-95 border ${
@@ -870,58 +877,83 @@ export default function CitizenApp() {
           </div>
         )}
 
-        {/* ===================== VIEW 5: AI SAFETY ASSISTANT ===================== */}
-        {activeTab === 'ai' && (
-          <div className="space-y-4 flex flex-col h-[74vh]">
-            <div className={`pb-2 border-b flex items-center justify-between ${isDark ? 'border-[#D4AF37]/30' : 'border-slate-300'}`}>
-              <div>
-                <h2 className={`text-sm font-bold flex items-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-                  <span>AI Disaster Survival Protocol</span>
-                </h2>
-                <p className={`text-[10px] ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Offline-ready emergency protocols & first-aid procedures</p>
+        {/* ===================== VIEW 5: CITIZEN PROFILE TAB ===================== */}
+        {activeTab === 'profile' && (
+          <div className="space-y-4 animate-fadeIn">
+            <h2 className={`text-base font-black flex items-center gap-2 pb-2 border-b ${isDark ? 'border-[#D4AF37]/30 text-white' : 'border-slate-300 text-slate-900'}`}>
+              <span>👤 Citizen Emergency Profile</span>
+            </h2>
+
+            {/* Profile Summary Card */}
+            <div className="bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#0B2545] to-[#0077B6] border-2 border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shadow-lg">
+                  <User className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">{user.name}</h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    {user.phone ? `+91 ${user.phone}` : 'Guest Citizen (Unregistered)'}
+                  </p>
+                  <span className="inline-block text-[10px] bg-emerald-100 text-[#059669] font-mono font-bold px-2 py-0.5 rounded-full border border-emerald-300 mt-1">
+                    🟢 Active Mesh Node
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* Chat message bubbles */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 py-2">
-              {aiMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-md ${
-                    msg.sender === 'user' 
-                      ? 'bg-[#0077B6] text-white' 
-                      : 'bg-white text-slate-800 border border-slate-200'
-                  }`}>
-                    {msg.text}
+              {/* Node Telemetry Grid */}
+              <div className="grid grid-cols-2 gap-2.5 text-xs font-mono bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <div>
+                  <span className="text-slate-500 block text-[10px]">Unique Node ID</span>
+                  <span className="text-slate-900 font-bold">{myDeviceId}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[10px]">Network Mode</span>
+                  <span className={isOnline ? 'text-[#059669] font-bold' : 'text-amber-700 font-bold'}>
+                    {isOnline ? 'Direct Cloud Relay' : 'Multi-Hop Mesh'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[10px]">GPS Lock</span>
+                  <span className="text-slate-900 font-bold">{gpsCoords.lat}, {gpsCoords.lon}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[10px]">DTN Offline Queue</span>
+                  <span className="text-[#0077B6] font-bold">{offlineQueue.length} Events</span>
+                </div>
+              </div>
+
+              {/* Emergency Contacts & Medical Info */}
+              <div className="space-y-2 pt-1">
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">Emergency Information</h4>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Blood Group:</span>
+                    <span className="font-bold text-slate-900">O+ (Default)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Emergency Helpline:</span>
+                    <span className="font-bold text-rose-700">112 (Disaster National)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">NDRF Direct Control:</span>
+                    <span className="font-bold text-[#0077B6]">1078 / 011-24363260</span>
                   </div>
                 </div>
-              ))}
-              {aiLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white border border-slate-200 rounded-2xl px-3.5 py-2 text-xs text-[#0077B6] font-mono animate-pulse">
-                    Synthesizing safety protocol...
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
 
-            {/* Input Bar */}
-            <form onSubmit={handleAskAI} className="flex items-center space-x-2 pt-2 border-t border-slate-300">
-              <input
-                type="text"
-                placeholder="Ask emergency protocol question..."
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-[#0077B6]"
-              />
+              {/* Log out / Switch User */}
               <button
-                type="submit"
-                disabled={aiLoading}
-                className="bg-[#0077B6] hover:bg-[#005f92] text-white p-2.5 rounded-xl transition cursor-pointer"
+                onClick={() => {
+                  localStorage.removeItem('vajranet_citizen_user');
+                  setUser(null);
+                }}
+                className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
-                <Send className="w-4 h-4" />
+                <LogOut className="w-4 h-4" />
+                <span>Log Out of this Device</span>
               </button>
-            </form>
+            </div>
           </div>
         )}
 
@@ -1043,8 +1075,115 @@ export default function CitizenApp() {
 
       </main>
 
-      {/* ==================== 3. BOTTOM NAVIGATION BAR ==================== */}
-      <nav className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto px-1 py-1.5 flex items-center justify-around z-50 shadow-2xl transition-colors ${
+      {/* ==================== 3. FLOATING VAJRAAI ACTION BUTTON ==================== */}
+      <button
+        onClick={() => setShowVajraAiModal(true)}
+        className="fixed bottom-20 right-4 z-40 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-black px-4 py-2.5 rounded-full shadow-2xl shadow-purple-600/50 flex items-center gap-2 cursor-pointer border-2 border-purple-300/40 active:scale-95 transition"
+      >
+        <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+        <span className="text-xs font-mono font-bold tracking-wider">VajraAI</span>
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      </button>
+
+      {/* ==================== 4. VAJRAAI FLOATING MODAL / DRAWER ==================== */}
+      {showVajraAiModal && (
+        <div className="fixed inset-0 bg-[#07172C]/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fadeIn p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md h-[88vh] sm:h-[82vh] flex flex-col justify-between overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="bg-[#0B2545] text-white px-4 py-3 border-b border-[#D4AF37]/40 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-950 border border-purple-400 flex items-center justify-center text-purple-300">
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-white flex items-center gap-2">
+                    <span>VajraAI Safety Assistant</span>
+                    <span className="text-[9px] bg-purple-900/80 text-purple-200 border border-purple-500/50 px-1.5 py-0.2 rounded font-mono font-bold">
+                      LIVE
+                    </span>
+                  </h3>
+                  <p className="text-[10px] text-[#D4AF37] font-mono">
+                    {useVercelIframe ? 'vajraai-steel.vercel.app' : 'Offline Protocol Engine'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => window.open('https://vajraai-steel.vercel.app', '_blank')}
+                  title="Open in Fullscreen Tab"
+                  className="p-1.5 rounded-lg bg-[#07172C] text-slate-300 hover:text-white cursor-pointer border border-slate-700"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setShowVajraAiModal(false)}
+                  className="p-1.5 rounded-lg bg-[#07172C] text-slate-300 hover:text-rose-400 cursor-pointer border border-slate-700"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body: Embedded Vercel App or Local AI Fallback */}
+            {useVercelIframe ? (
+              <div className="flex-1 w-full bg-slate-900 relative">
+                <iframe
+                  src="https://vajraai-steel.vercel.app"
+                  title="VajraAI Emergency Assistant"
+                  className="w-full h-full border-none"
+                  onError={() => setUseVercelIframe(false)}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col justify-between p-4 overflow-hidden bg-slate-50">
+                <div className="flex-1 overflow-y-auto space-y-2.5 py-2">
+                  {aiMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-md ${
+                        msg.sender === 'user' 
+                          ? 'bg-[#0077B6] text-white' 
+                          : 'bg-white text-slate-800 border border-slate-200'
+                      }`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+                  {aiLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border border-slate-200 rounded-2xl px-3.5 py-2 text-xs text-[#0077B6] font-mono animate-pulse">
+                        Synthesizing VajraAI protocol...
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleAskAI} className="flex items-center space-x-2 pt-2 border-t border-slate-300">
+                  <input
+                    type="text"
+                    placeholder="Ask emergency protocol question..."
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-[#0077B6]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={aiLoading}
+                    className="bg-[#0077B6] hover:bg-[#005f92] text-white p-2.5 rounded-xl transition cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* ==================== 5. BOTTOM NAVIGATION BAR (NOW WITH PROFILE) ==================== */}
+      <nav className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto px-1 py-1.5 flex items-center justify-around z-40 shadow-2xl transition-colors ${
         isDark 
           ? 'bg-[#07172C]/95 backdrop-blur-md border-t-2 border-[#D4AF37]/50' 
           : 'bg-white/95 backdrop-blur-md border-t border-slate-300'
@@ -1110,17 +1249,17 @@ export default function CitizenApp() {
           <span className="text-[9px]">Alerts</span>
         </button>
 
-        {/* 5. AI Safety Guide */}
+        {/* 5. Citizen Profile Tab (Replaced AI Guide) */}
         <button
-          onClick={() => setActiveTab('ai')}
+          onClick={() => setActiveTab('profile')}
           className={`flex flex-col items-center space-y-0.5 p-1 rounded-xl transition cursor-pointer ${
-            activeTab === 'ai' 
+            activeTab === 'profile' 
               ? (isDark ? 'text-blue-400 font-bold' : 'text-[#0077B6] font-bold') 
               : 'text-slate-400 hover:text-slate-600'
           }`}
         >
-          <MessageSquare className="w-5 h-5" />
-          <span className="text-[9px]">AI Guide</span>
+          <User className="w-5 h-5" />
+          <span className="text-[9px]">Profile</span>
         </button>
 
       </nav>
