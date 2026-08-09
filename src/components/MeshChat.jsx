@@ -144,9 +144,75 @@ export default function MeshChat({ user, gpsCoords }) {
     scrollToBottom();
   }, [messages, activeChannel]);
 
+  // Live P2P Broadcast Channel across browser tabs / local network nodes
+  useEffect(() => {
+    let channel;
+    try {
+      channel = new BroadcastChannel('vajranet_p2p_mesh_bus');
+      channel.onmessage = (event) => {
+        const { channel: targetCh, message: incomingMsg } = event.data || {};
+        if (targetCh && incomingMsg) {
+          // Avoid self echoes
+          if (incomingMsg.nodeId === `NODE-${user?.phone || 'LOCAL'}`) return;
+
+          setMessages((prev) => ({
+            ...prev,
+            [targetCh]: [
+              ...(prev[targetCh] || []),
+              {
+                ...incomingMsg,
+                isMe: false,
+                hops: (incomingMsg.hops || 0) + 1,
+              },
+            ],
+          }));
+        }
+      };
+    } catch (e) {
+      console.warn('BroadcastChannel not supported in this environment', e);
+    }
+
+    return () => {
+      if (channel) channel.close();
+    };
+  }, [user]);
+
   const getCurrentTimeString = () => {
     const d = new Date();
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const broadcastMeshPacket = (channelName, messageObj) => {
+    try {
+      const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
+      bc.postMessage({ channel: channelName, message: messageObj });
+      setTimeout(() => bc.close(), 100);
+    } catch (e) {
+      console.warn('P2P Mesh broadcast failed', e);
+    }
+
+    // If critical/SOS, also buffer into DTN offline queue for gateway uplink
+    if (channelName === 'sos' || messageObj.priority === 'CRITICAL') {
+      try {
+        const currentQ = JSON.parse(localStorage.getItem('vajranet_offline_queue') || '[]');
+        const offlineEvent = {
+          message_id: messageObj.id,
+          type: 'SOS',
+          created_at: new Date().toISOString(),
+          origin_device_id: messageObj.nodeId,
+          payload: {
+            message: messageObj.text,
+            latitude: messageObj.lat || 28.6139,
+            longitude: messageObj.lon || 77.2090,
+            severity: messageObj.priority || 'CRITICAL',
+            user_name: messageObj.sender,
+          }
+        };
+        localStorage.setItem('vajranet_offline_queue', JSON.stringify([...currentQ, offlineEvent]));
+      } catch (err) {
+        console.warn('Failed to buffer to DTN queue', err);
+      }
+    }
   };
 
   const handleSendMessage = (e) => {
@@ -157,7 +223,7 @@ export default function MeshChat({ user, gpsCoords }) {
     const newMsg = {
       id: `msg-user-${Date.now()}`,
       sender: user?.name || 'Guest Citizen',
-      nodeId: `NODE-LOCAL`,
+      nodeId: `NODE-${user?.phone || 'LOCAL'}`,
       role: user?.isGuest ? 'Guest Peer' : 'Registered Citizen',
       text: newMsgText,
       time: getCurrentTimeString(),
@@ -174,6 +240,9 @@ export default function MeshChat({ user, gpsCoords }) {
       ...prev,
       [activeChannel]: [...(prev[activeChannel] || []), newMsg]
     }));
+
+    // Broadcast across live P2P mesh bus
+    broadcastMeshPacket(activeChannel, newMsg);
 
     setInputText('');
     setAttachedImage(null);
@@ -207,7 +276,7 @@ export default function MeshChat({ user, gpsCoords }) {
     const newMsg = {
       id: `msg-quick-${Date.now()}`,
       sender: user?.name || 'Guest Citizen',
-      nodeId: `NODE-LOCAL`,
+      nodeId: `NODE-${user?.phone || 'LOCAL'}`,
       role: 'Quick Status Broadcast',
       text: statusText,
       time: getCurrentTimeString(),
@@ -223,6 +292,9 @@ export default function MeshChat({ user, gpsCoords }) {
       ...prev,
       [activeChannel]: [...(prev[activeChannel] || []), newMsg]
     }));
+
+    // Broadcast across live P2P mesh bus
+    broadcastMeshPacket(activeChannel, newMsg);
   };
 
   const handleSimulatePhotoAttachment = () => {
