@@ -224,6 +224,31 @@ export default function CitizenApp() {
       user_phone: user?.phone || 'N/A'
     };
 
+    // 1. Universal 3rd Feed: Inject immediately into Citizen Alerts Feed
+    const liveCitizenAlert = {
+      id: `ALERT-SOS-${Date.now()}`,
+      title: `🚨 EMERGENCY DISTRESS BEACON: ${user?.name || 'Citizen'}`,
+      content: `Urgent SOS dispatched near (${gpsCoords.lat}, ${gpsCoords.lon}). Priority: ${sosType}. Citizens and responders nearby please provide immediate assistance.`,
+      severity: 'CRITICAL',
+      isLiveSos: true,
+      created_at: new Date().toISOString()
+    };
+    setAnnouncements(prev => [liveCitizenAlert, ...prev]);
+
+    // Broadcast across P2P mesh bus
+    try {
+      const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
+      bc.postMessage({
+        senderId: localStorage.getItem('vajranet_device_id') || `VAJRA-${Date.now()}`,
+        senderName: user?.name || 'Citizen',
+        message: `🚨 CRITICAL SOS BEACON: (${gpsCoords.lat}, ${gpsCoords.lon}) - ${sosType}`
+      });
+      setTimeout(() => bc.close(), 100);
+    } catch (e) {
+      console.warn('Broadcast failed', e);
+    }
+
+    // 2. Transmit to Government and Volunteer feeds (or buffer if offline)
     try {
       const res = await apiFetch('/sos', {
         method: 'POST',
@@ -238,7 +263,7 @@ export default function CitizenApp() {
         message_id: msgId,
         type: 'SOS',
         created_at: new Date().toISOString(),
-        origin_device_id: `DEVICE-${user?.phone || 'ANON'}`,
+        origin_device_id: localStorage.getItem('vajranet_device_id') || `DEVICE-${user?.phone || 'ANON'}`,
         payload: payload
       };
       saveQueue([...offlineQueue, offlineEvent]);
@@ -737,32 +762,53 @@ export default function CitizenApp() {
         {/* ===================== VIEW 3: OFFLINE P2P MESH & CHAT (THE CORE FEATURE) ===================== */}
         {activeTab === 'mesh' && (
           <div className="space-y-3 animate-fadeIn">
-            <MeshChat user={user} gpsCoords={gpsCoords} />
+            <MeshChat user={user} gpsCoords={gpsCoords} onTriggerSOS={handleSendSOS} />
           </div>
         )}
 
-        {/* ===================== VIEW 4: GOVERNMENT ALERTS ===================== */}
+        {/* ===================== VIEW 4: CITIZEN ALERTS & DISASTER BROADCASTS ===================== */}
         {activeTab === 'alerts' && (
           <div className="space-y-4">
             <h2 className="text-base font-black text-white flex items-center gap-2 pb-2 border-b border-slate-800">
-              <span>📢 Official Disaster Broadcasts</span>
+              <span>📢 Citizen Alerts & Distress Broadcasts</span>
             </h2>
 
             <div className="space-y-3">
-              {announcements.map((ann) => (
-                <div key={ann.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono bg-red-950 text-red-300 border border-red-800 px-2 py-0.5 rounded font-bold">
-                      {ann.severity || 'OFFICIAL BROADCAST'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono">Verified Govt NDRF</span>
+              {announcements.map((ann) => {
+                const isLiveDistress = ann.isLiveSos || ann.title?.includes('DISTRESS') || ann.severity === 'CRITICAL';
+
+                return (
+                  <div
+                    key={ann.id}
+                    className={`border rounded-2xl p-4 space-y-2.5 transition shadow-lg ${
+                      isLiveDistress
+                        ? 'bg-gradient-to-br from-rose-950/70 via-slate-900 to-slate-900 border-rose-500/70 shadow-rose-600/20'
+                        : 'bg-slate-900 border-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
+                        isLiveDistress
+                          ? 'bg-rose-950 text-rose-300 border-rose-700 animate-pulse'
+                          : 'bg-red-950 text-red-300 border-red-800'
+                      }`}>
+                        {isLiveDistress ? '🚨 LIVE CITIZEN SOS' : (ann.severity || 'OFFICIAL BROADCAST')}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {isLiveDistress ? '📡 P2P Mesh Relayed' : 'Verified Govt NDRF'}
+                      </span>
+                    </div>
+
+                    <h3 className={`text-xs font-bold ${isLiveDistress ? 'text-rose-200' : 'text-white'}`}>
+                      {ann.title}
+                    </h3>
+
+                    <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+                      {ann.content}
+                    </p>
                   </div>
-                  <h3 className="text-xs font-bold text-white">{ann.title}</h3>
-                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-                    {ann.content}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
