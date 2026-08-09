@@ -344,27 +344,29 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
       <div className="bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-3.5">
         
         {/* Section Header with Dynamic Adaptive Hop Policy Badge */}
-        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span>📡 Available Nearby Devices</span>
-              <span className="text-[10px] bg-blue-100 text-[#0077B6] border border-blue-300 px-2 py-0.2 rounded-full font-mono font-bold">
+        <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <span>📡 Available Nearby Devices</span>
+              </h2>
+              <span className="text-[10px] bg-blue-100 text-[#0077B6] border border-blue-300 px-2 py-0.5 rounded-full font-mono font-bold whitespace-nowrap">
                 {visibleDevices.length} In Range
               </span>
-            </h2>
+            </div>
             <p className="text-[10px] text-slate-500 mt-0.5">
-              Connect peer-to-peer to request local assistance, water, or relay an SOS.
+              Connect peer-to-peer to request local aid or relay SOS.
             </p>
           </div>
 
           {/* Adaptive Hop Rule Pill */}
-          <div className="text-right">
-            <span className={`text-[9px] px-2 py-0.5 rounded-full font-mono font-bold border ${
+          <div className="shrink-0 self-start">
+            <span className={`text-[10px] px-2.5 py-1 rounded-full font-mono font-bold border whitespace-nowrap inline-flex items-center shadow-sm ${
               isDenseArea
                 ? 'bg-amber-100 text-amber-800 border-amber-300'
                 : 'bg-emerald-100 text-emerald-800 border-emerald-300'
             }`}>
-              {isDenseArea ? '⚡ Max 3 Hops' : '⚡ Extended (No Hop Limit)'}
+              {isDenseArea ? '⚡ Max 3 Hops' : '⚡ Extended (All)'}
             </span>
           </div>
         </div>
