@@ -34,10 +34,19 @@ import {
   Maximize2
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
+import { Capacitor } from '@capacitor/core';
 import LoginPage from './LoginPage';
 import MeshChat from './MeshChat';
+import DownloadAppPage from './DownloadAppPage';
 
 export default function CitizenApp() {
+  // Maintenance / Showcase Mode for Web Deployments
+  const [bypassDownloadPage, setBypassDownloadPage] = useState(false);
+  const isWeb = !Capacitor.isNativePlatform();
+  const isDownloadPageActive = Boolean(
+    isWeb && 
+    (import.meta.env.VITE_MAINTENANCE_MODE === 'true' || import.meta.env.VITE_SHOW_DOWNLOAD_PAGE === 'true')
+  );
   // Theme State: 'dark' | 'light'
   const [theme, setTheme] = useState(() => {
     try {
@@ -368,6 +377,10 @@ export default function CitizenApp() {
     }
   };
 
+  if (isDownloadPageActive && !bypassDownloadPage) {
+    return <DownloadAppPage onProceedToWeb={() => setBypassDownloadPage(true)} />;
+  }
+
   if (!user) {
     return (
       <LoginPage 
@@ -400,14 +413,14 @@ export default function CitizenApp() {
           : 'bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-900'
       }`}>
         <div className="flex items-center space-x-2.5">
-          <div className={`w-8 h-8 rounded-full border flex items-center justify-center shadow-md ${
-            isDark ? 'bg-[#07172C] border-[#D4AF37]' : 'bg-[#0B2545] border-[#D4AF37]'
-          }`}>
-            <Shield className="w-4 h-4 text-[#D4AF37]" />
-          </div>
+          <img 
+            src="/app-icon.jpg" 
+            alt="VajraNet" 
+            className="w-8 h-8 rounded-xl border border-cyan-400/50 shadow-sm object-cover" 
+          />
           <div>
             <span className="font-black text-sm tracking-wide block">VAJRANET</span>
-            <span className={`text-[10px] font-mono block -mt-0.5 ${isDark ? 'text-[#D4AF37]' : 'text-amber-700 font-bold'}`}>
+            <span className={`text-[10px] font-mono block -mt-0.5 ${isDark ? 'text-cyan-400' : 'text-cyan-700 font-bold'}`}>
               {user.isGuest ? 'Citizen (Guest)' : user.name}
             </span>
           </div>
@@ -597,6 +610,37 @@ export default function CitizenApp() {
                 </button>
               </div>
             )}
+
+            {/* HERO CARD: OFFLINE P2P MESHCHAT & BEACON */}
+            <div className="pt-2">
+              <button
+                onClick={() => setActiveTab('mesh')}
+                className="w-full p-4.5 bg-gradient-to-r from-[#0B2545] via-[#0E294B] to-[#07172C] hover:to-[#0B2545] border-2 border-cyan-400/60 rounded-3xl text-left transition active:scale-[0.98] shadow-2xl group flex items-center justify-between cursor-pointer relative overflow-hidden"
+              >
+                <div className="flex items-center gap-3.5 relative z-10">
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-950/80 border border-cyan-400/80 flex items-center justify-center text-cyan-300 shadow-inner group-hover:scale-110 transition">
+                    <Radio className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] bg-cyan-900/80 border border-cyan-400/50 text-cyan-200 px-2 py-0.2 rounded-full font-mono font-bold">
+                        100% OFFLINE P2P
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        Mesh Ready
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-black text-white mt-0.5 tracking-wide">Offline MeshChat & SOS</h4>
+                    <p className="text-[11px] text-cyan-200 font-mono">Chat nearby nodes with zero cellular / internet</p>
+                  </div>
+                </div>
+
+                <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 group-hover:translate-x-1 transition shrink-0 relative z-10">
+                  <ChevronRight className="w-5 h-5" />
+                </div>
+              </button>
+            </div>
 
             {/* "EMERGENCY SERVICES & RESOURCES" 4 CRISP WHITE CARDS */}
             <div className="space-y-2 pt-2">
