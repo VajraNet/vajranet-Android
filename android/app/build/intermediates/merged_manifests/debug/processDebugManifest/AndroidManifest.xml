@@ -8,9 +8,24 @@
         android:minSdkVersion="24"
         android:targetSdkVersion="36" />
 
-    <!-- Permissions -->
-
+    <!-- Permissions for Hardware Offline P2P Nearby Connections -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- Android 12+ (API 31+) Bluetooth and Nearby Permissions -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- Android 13+ (API 33+) Nearby Wi-Fi Devices Permission -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
 
     <permission
         android:name="com.vajranet.sih.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
@@ -51,6 +66,21 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <service
+            android:name="com.google.android.gms.nearby.exposurenotification.WakeUpService"
+            android:exported="true"
+            android:permission="com.google.android.gms.nearby.exposurenotification.EXPOSURE_CALLBACK" />
+
+        <activity
+            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="com.vajranet.sih.androidx-startup"

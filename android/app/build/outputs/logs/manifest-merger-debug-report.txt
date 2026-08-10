@@ -11,10 +11,10 @@ INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\m
 	android:name
 		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:28:13-62
 manifest
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-41:12
-INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-41:12
-INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-41:12
-INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-41:12
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-56:12
+INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-56:12
+INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-56:12
+INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-56:12
 MERGED from [:capacitor-android] C:\Users\vansh\Desktop\Projects\vajranet-Android\node_modules\@capacitor\android\capacitor\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:2:1-7:12
 MERGED from [:capacitor-cordova-android-plugins] C:\Users\vansh\Desktop\Projects\vajranet-Android\android\capacitor-cordova-android-plugins\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:2:1-11:12
 MERGED from [org.apache.cordova:framework:14.0.1] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e47013dec160bb8e8e78795049f410c2\transformed\framework-14.0.1\AndroidManifest.xml:20:1-27:12
@@ -22,6 +22,10 @@ MERGED from [androidx.core:core-splashscreen:1.2.0] C:\Users\vansh\.gradle\cache
 MERGED from [androidx.appcompat:appcompat-resources:1.7.1] C:\Users\vansh\.gradle\caches\8.14.3\transforms\bee8f78bb28e6cb788edd05c601f4778\transformed\appcompat-resources-1.7.1\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.appcompat:appcompat:1.7.1] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c3f09e8abd8bb01c9314454bd06bb337\transformed\appcompat-1.7.1\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\ef97883a45eaa5cc79115d450cce1dbe\transformed\coordinatorlayout-1.3.0\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:2:1-12:12
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\d96093e1af75474404e03d589669c9b5\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:2:1-5:12
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:2:1-9:12
 MERGED from [androidx.fragment:fragment:1.8.9] C:\Users\vansh\.gradle\caches\8.14.3\transforms\754c4f1b691d2a1223e4f8f413992fee\transformed\fragment-1.8.9\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.activity:activity:1.11.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\4ce00e85fb17003296e7add5523825c1\transformed\activity-1.11.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\1e3e5961ccf37b13ee8a7c0a81228664\transformed\cursoradapter-1.0.0\AndroidManifest.xml:17:1-22:12
@@ -64,6 +68,14 @@ ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main
 INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:4:5-36:19
 MERGED from [:capacitor-cordova-android-plugins] C:\Users\vansh\Desktop\Projects\vajranet-Android\android\capacitor-cordova-android-plugins\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:8:5-9:19
 MERGED from [:capacitor-cordova-android-plugins] C:\Users\vansh\Desktop\Projects\vajranet-Android\android\capacitor-cordova-android-plugins\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:8:5-9:19
+MERGED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:8:5-10:19
+MERGED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:8:5-10:19
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:4:5-6:19
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:4:5-6:19
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\d96093e1af75474404e03d589669c9b5\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\d96093e1af75474404e03d589669c9b5\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:5:5-7:19
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:5:5-7:19
 MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:28:5-89
@@ -117,9 +129,59 @@ ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main
 	android:name
 		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:22:27-74
 uses-permission#android.permission.INTERNET
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:5-67
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:39:5-67
 	android:name
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:22-64
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:39:22-64
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:5-79
+MERGED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:6:5-79
+MERGED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:6:5-79
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:22-76
+uses-permission#android.permission.ACCESS_WIFI_STATE
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:41:5-76
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:41:22-73
+uses-permission#android.permission.CHANGE_WIFI_STATE
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:42:5-76
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:42:22-73
+uses-permission#android.permission.CHANGE_NETWORK_STATE
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:43:5-79
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:43:22-76
+uses-permission#android.permission.BLUETOOTH
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:44:5-68
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:44:22-65
+uses-permission#android.permission.BLUETOOTH_ADMIN
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:45:5-74
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:45:22-71
+uses-permission#android.permission.ACCESS_COARSE_LOCATION
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:46:5-81
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:46:22-78
+uses-permission#android.permission.ACCESS_FINE_LOCATION
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:47:5-79
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:47:22-76
+uses-permission#android.permission.BLUETOOTH_SCAN
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:50:5-73
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:50:22-70
+uses-permission#android.permission.BLUETOOTH_ADVERTISE
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:51:5-78
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:51:22-75
+uses-permission#android.permission.BLUETOOTH_CONNECT
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:52:5-76
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:52:22-73
+uses-permission#android.permission.NEARBY_WIFI_DEVICES
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:55:5-78
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:55:22-75
 meta-data#android.support.FILE_PROVIDER_PATHS
 ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:32:13-34:64
 	android:resource
@@ -144,6 +206,14 @@ MERGED from [androidx.appcompat:appcompat:1.7.1] C:\Users\vansh\.gradle\caches\8
 MERGED from [androidx.appcompat:appcompat:1.7.1] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c3f09e8abd8bb01c9314454bd06bb337\transformed\appcompat-1.7.1\AndroidManifest.xml:5:5-44
 MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\ef97883a45eaa5cc79115d450cce1dbe\transformed\coordinatorlayout-1.3.0\AndroidManifest.xml:5:5-44
 MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\ef97883a45eaa5cc79115d450cce1dbe\transformed\coordinatorlayout-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:4:5-44
+MERGED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:4:5-44
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\d96093e1af75474404e03d589669c9b5\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\d96093e1af75474404e03d589669c9b5\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:3:5-44
 MERGED from [androidx.fragment:fragment:1.8.9] C:\Users\vansh\.gradle\caches\8.14.3\transforms\754c4f1b691d2a1223e4f8f413992fee\transformed\fragment-1.8.9\AndroidManifest.xml:5:5-44
 MERGED from [androidx.fragment:fragment:1.8.9] C:\Users\vansh\.gradle\caches\8.14.3\transforms\754c4f1b691d2a1223e4f8f413992fee\transformed\fragment-1.8.9\AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity:1.11.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\4ce00e85fb17003296e7add5523825c1\transformed\activity-1.11.0\AndroidManifest.xml:20:5-44
@@ -206,6 +276,28 @@ MERGED from [androidx.core:core-viewtree:1.0.0] C:\Users\vansh\.gradle\caches\8.
 		INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml
 	android:minSdkVersion
 		INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml
+service#com.google.android.gms.nearby.exposurenotification.WakeUpService
+ADDED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:9:9-214
+	android:exported
+		ADDED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:9:98-121
+	android:permission
+		ADDED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:9:122-211
+	android:name
+		ADDED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:9:18-97
+activity#com.google.android.gms.common.api.GoogleApiActivity
+ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:9-173
+	android:exported
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:146-170
+	android:theme
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:86-145
+	android:name
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:19-85
+meta-data#com.google.android.gms.version
+ADDED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:9-122
+	android:value
+		ADDED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:66-119
+	android:name
+		ADDED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:20-65
 provider#androidx.startup.InitializationProvider
 ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
 MERGED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\vansh\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:24:9-32:20

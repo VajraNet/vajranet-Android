@@ -89,19 +89,24 @@ export default function LoginPage({ onLoginSuccess, onSkip }) {
       <div className="max-w-md mx-auto w-full space-y-6">
         
         {/* Emblem & Portal Branding */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#0B2545] border-2 border-[#D4AF37] shadow-xl p-1">
-            <div className="w-full h-full rounded-full bg-[#07172C] flex items-center justify-center text-[#D4AF37]">
-              <Shield className="w-8 h-8 text-[#D4AF37]" />
-            </div>
+        <div className="text-center space-y-2.5">
+          <div className="inline-flex items-center justify-center p-1">
+            <img 
+              src="/app-icon.jpg" 
+              alt="VajraNet Citizen" 
+              className="w-16 h-16 rounded-2xl border-2 border-cyan-400/50 shadow-2xl object-cover"
+            />
           </div>
 
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">
               VajraNet Citizen Portal
             </h1>
-            <p className="text-xs text-[#D4AF37] font-medium mt-0.5 font-mono">
-              Offline-First Emergency Communication & Mesh Network
+            <p className="text-xs text-cyan-300 font-semibold font-mono mt-1">
+              "When The World Goes Dark, We Stay Connected."
+            </p>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+              Offline-First Peer-to-Peer Disaster Mesh Network
             </p>
           </div>
         </div>

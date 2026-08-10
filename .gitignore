@@ -4,3 +4,7 @@ dist
 *.log
 .env
 .env.local
+android/.gradle
+android/app/build
+android/build
+android/capacitor-cordova-android-plugins/build

@@ -8,148 +8,213 @@
 8        android:minSdkVersion="24"
 9        android:targetSdkVersion="36" />
 10
-11    <!-- Permissions -->
-12
-13    <uses-permission android:name="android.permission.INTERNET" />
-13-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:5-67
-13-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:22-64
-14
-15    <permission
-15-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:22:5-24:47
-16        android:name="com.vajranet.sih.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-16-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:23:9-81
-17        android:protectionLevel="signature" />
-17-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:24:9-44
-18
-19    <uses-permission android:name="com.vajranet.sih.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-19-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:26:5-97
-19-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:26:22-94
-20
-21    <application
-21-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:4:5-36:19
-22        android:allowBackup="true"
-22-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:5:9-35
-23        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-23-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:28:18-86
-24        android:debuggable="true"
-25        android:extractNativeLibs="false"
-26        android:icon="@mipmap/ic_launcher"
-26-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:6:9-43
-27        android:label="@string/app_name"
-27-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:7:9-41
-28        android:roundIcon="@mipmap/ic_launcher_round"
-28-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:8:9-54
-29        android:supportsRtl="true"
-29-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:9:9-35
-30        android:theme="@style/AppTheme" >
-30-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:10:9-40
-31        <activity
-31-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:12:9-25:20
-32            android:name="com.vajranet.sih.MainActivity"
-32-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:14:13-41
-33            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
-33-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:13:13-148
-34            android:exported="true"
-34-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:18:13-36
-35            android:label="@string/title_activity_main"
-35-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:15:13-56
-36            android:launchMode="singleTask"
-36-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:17:13-44
-37            android:theme="@style/AppTheme.NoActionBarLaunch" >
-37-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:16:13-62
-38            <intent-filter>
-38-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:20:13-23:29
-39                <action android:name="android.intent.action.MAIN" />
-39-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:21:17-69
-39-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:21:25-66
-40
-41                <category android:name="android.intent.category.LAUNCHER" />
-41-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:22:17-77
-41-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:22:27-74
-42            </intent-filter>
-43        </activity>
-44
-45        <provider
-46            android:name="androidx.core.content.FileProvider"
-46-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:28:13-62
-47            android:authorities="com.vajranet.sih.fileprovider"
-47-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:29:13-64
-48            android:exported="false"
-48-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:30:13-37
-49            android:grantUriPermissions="true" >
-49-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:31:13-47
-50            <meta-data
-50-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:32:13-34:64
-51                android:name="android.support.FILE_PROVIDER_PATHS"
-51-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:33:17-67
-52                android:resource="@xml/file_paths" />
-52-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:34:17-51
-53        </provider>
-54        <provider
-54-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
-55            android:name="androidx.startup.InitializationProvider"
-55-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
-56            android:authorities="com.vajranet.sih.androidx-startup"
-56-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
-57            android:exported="false" >
-57-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
-58            <meta-data
-58-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
-59                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-59-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
-60                android:value="androidx.startup" />
-60-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
-61            <meta-data
-61-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\vansh\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
-62                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-62-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\vansh\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
-63                android:value="androidx.startup" />
-63-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\vansh\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
-64            <meta-data
-64-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:29:13-31:52
-65                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-65-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:30:17-85
-66                android:value="androidx.startup" />
-66-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:31:17-49
-67        </provider>
-68
-69        <receiver
-69-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:34:9-52:20
-70            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-70-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:35:13-76
-71            android:directBootAware="false"
-71-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:36:13-44
-72            android:enabled="true"
-72-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:37:13-35
-73            android:exported="true"
-73-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:38:13-36
-74            android:permission="android.permission.DUMP" >
-74-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:39:13-57
-75            <intent-filter>
-75-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:40:13-42:29
-76                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-76-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:17-91
-76-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:25-88
-77            </intent-filter>
-78            <intent-filter>
-78-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:43:13-45:29
-79                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-79-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:17-85
-79-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:25-82
-80            </intent-filter>
-81            <intent-filter>
-81-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:46:13-48:29
-82                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-82-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:17-88
-82-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:25-85
-83            </intent-filter>
-84            <intent-filter>
-84-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:49:13-51:29
-85                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-85-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:17-95
-85-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:25-92
-86            </intent-filter>
-87        </receiver>
-88    </application>
-89
-90</manifest>
+11    <!-- Permissions for Hardware Offline P2P Nearby Connections -->
+12    <uses-permission android:name="android.permission.INTERNET" />
+12-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:39:5-67
+12-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:39:22-64
+13    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+13-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:5-79
+13-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:22-76
+14    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+14-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:41:5-76
+14-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:41:22-73
+15    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+15-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:42:5-76
+15-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:42:22-73
+16    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+16-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:43:5-79
+16-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:43:22-76
+17    <uses-permission android:name="android.permission.BLUETOOTH" />
+17-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:44:5-68
+17-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:44:22-65
+18    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+18-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:45:5-74
+18-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:45:22-71
+19    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+19-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:46:5-81
+19-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:46:22-78
+20    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+20-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:47:5-79
+20-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:47:22-76
+21
+22    <!-- Android 12+ (API 31+) Bluetooth and Nearby Permissions -->
+23    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+23-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:50:5-73
+23-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:50:22-70
+24    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+24-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:51:5-78
+24-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:51:22-75
+25    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+25-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:52:5-76
+25-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:52:22-73
+26
+27    <!-- Android 13+ (API 33+) Nearby Wi-Fi Devices Permission -->
+28    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+28-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:55:5-78
+28-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:55:22-75
+29
+30    <permission
+30-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:22:5-24:47
+31        android:name="com.vajranet.sih.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+31-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:23:9-81
+32        android:protectionLevel="signature" />
+32-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:24:9-44
+33
+34    <uses-permission android:name="com.vajranet.sih.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+34-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:26:5-97
+34-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:26:22-94
+35
+36    <application
+36-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:4:5-36:19
+37        android:allowBackup="true"
+37-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:5:9-35
+38        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+38-->[androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:28:18-86
+39        android:debuggable="true"
+40        android:extractNativeLibs="false"
+41        android:icon="@mipmap/ic_launcher"
+41-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:6:9-43
+42        android:label="@string/app_name"
+42-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:7:9-41
+43        android:roundIcon="@mipmap/ic_launcher_round"
+43-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:8:9-54
+44        android:supportsRtl="true"
+44-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:9:9-35
+45        android:theme="@style/AppTheme" >
+45-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:10:9-40
+46        <activity
+46-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:12:9-25:20
+47            android:name="com.vajranet.sih.MainActivity"
+47-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:14:13-41
+48            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+48-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:13:13-148
+49            android:exported="true"
+49-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:18:13-36
+50            android:label="@string/title_activity_main"
+50-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:15:13-56
+51            android:launchMode="singleTask"
+51-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:17:13-44
+52            android:theme="@style/AppTheme.NoActionBarLaunch" >
+52-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:16:13-62
+53            <intent-filter>
+53-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:20:13-23:29
+54                <action android:name="android.intent.action.MAIN" />
+54-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:21:17-69
+54-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:21:25-66
+55
+56                <category android:name="android.intent.category.LAUNCHER" />
+56-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:22:17-77
+56-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:22:27-74
+57            </intent-filter>
+58        </activity>
+59
+60        <provider
+61            android:name="androidx.core.content.FileProvider"
+61-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:28:13-62
+62            android:authorities="com.vajranet.sih.fileprovider"
+62-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:29:13-64
+63            android:exported="false"
+63-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:30:13-37
+64            android:grantUriPermissions="true" >
+64-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:31:13-47
+65            <meta-data
+65-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:32:13-34:64
+66                android:name="android.support.FILE_PROVIDER_PATHS"
+66-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:33:17-67
+67                android:resource="@xml/file_paths" />
+67-->C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:34:17-51
+68        </provider>
+69
+70        <service
+70-->[com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:9:9-214
+71            android:name="com.google.android.gms.nearby.exposurenotification.WakeUpService"
+71-->[com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:9:18-97
+72            android:exported="true"
+72-->[com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:9:98-121
+73            android:permission="com.google.android.gms.nearby.exposurenotification.EXPOSURE_CALLBACK" />
+73-->[com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:9:122-211
+74
+75        <activity
+75-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:9-173
+76            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+76-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:19-85
+77            android:exported="false"
+77-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:146-170
+78            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+78-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\c1b0052ae712299163f2612d6db27779\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:86-145
+79
+80        <meta-data
+80-->[com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:9-122
+81            android:name="com.google.android.gms.version"
+81-->[com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:20-65
+82            android:value="@integer/google_play_services_version" />
+82-->[com.google.android.gms:play-services-basement:18.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\535e9dd0a65eaa85bd344836d560144e\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:66-119
+83
+84        <provider
+84-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+85            android:name="androidx.startup.InitializationProvider"
+85-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+86            android:authorities="com.vajranet.sih.androidx-startup"
+86-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+87            android:exported="false" >
+87-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+88            <meta-data
+88-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+89                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+89-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+90                android:value="androidx.startup" />
+90-->[androidx.emoji2:emoji2:1.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+91            <meta-data
+91-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\vansh\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+92                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+92-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\vansh\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+93                android:value="androidx.startup" />
+93-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\vansh\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+94            <meta-data
+94-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:29:13-31:52
+95                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+95-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:30:17-85
+96                android:value="androidx.startup" />
+96-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:31:17-49
+97        </provider>
+98
+99        <receiver
+99-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:34:9-52:20
+100            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+100-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:35:13-76
+101            android:directBootAware="false"
+101-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:36:13-44
+102            android:enabled="true"
+102-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:37:13-35
+103            android:exported="true"
+103-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:38:13-36
+104            android:permission="android.permission.DUMP" >
+104-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:39:13-57
+105            <intent-filter>
+105-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:40:13-42:29
+106                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+106-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:17-91
+106-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:25-88
+107            </intent-filter>
+108            <intent-filter>
+108-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:43:13-45:29
+109                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+109-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:17-85
+109-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:25-82
+110            </intent-filter>
+111            <intent-filter>
+111-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:46:13-48:29
+112                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+112-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:17-88
+112-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:25-85
+113            </intent-filter>
+114            <intent-filter>
+114-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:49:13-51:29
+115                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+115-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:17-95
+115-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:25-92
+116            </intent-filter>
+117        </receiver>
+118    </application>
+119
+120</manifest>
