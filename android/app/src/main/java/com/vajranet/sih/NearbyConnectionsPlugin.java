@@ -34,16 +34,18 @@ import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Native Capacitor Plugin for Google Play Services Nearby Connections.
  * Exactly matches com.vajranet app-debug.apk implementation:
  * - Service ID: com.vajranet.offline.SERVICE_ID
  * - Strategy: Strategy.P2P_STAR
- * - Auto-accept connection handshake
- * - Multi-device star mesh broadcast
- * - Message deduplication & lifecycle state machine
+ * - Symmetric multi-device auto-connect & bidirectional handshake
+ * - Self-discovery filtering (never displays own device)
+ * - Message deduplication & delay-tolerant multi-hop mesh relay
  */
 @CapacitorPlugin(
     name = "NearbyConnectionsPlugin",
@@ -81,6 +83,7 @@ public class NearbyConnectionsPlugin extends Plugin {
     private ConnectionsClient connectionsClient;
     private String localDeviceName = "Vajra-Node";
     private final Set<String> connectedEndpoints = new HashSet<>();
+    private final Map<String, String> endpointNames = new ConcurrentHashMap<>();
     private final Set<String> processedMessageIds = new HashSet<>();
     private boolean isAdvertising = false;
     private boolean isDiscovering = false;
@@ -147,7 +150,7 @@ public class NearbyConnectionsPlugin extends Plugin {
                 Log.i(TAG, "Advertising started as: " + localDeviceName);
             }).addOnFailureListener(e -> {
                 isAdvertising = false;
-                Log.w(TAG, "Notice: Advertising note: " + e.getMessage());
+                Log.w(TAG, "Advertising note: " + e.getMessage());
             });
 
             DiscoveryOptions discoveryOptions = new DiscoveryOptions.Builder()
@@ -167,7 +170,7 @@ public class NearbyConnectionsPlugin extends Plugin {
                 call.resolve(res);
             }).addOnFailureListener(e -> {
                 isDiscovering = false;
-                Log.w(TAG, "Notice: Discovery note: " + e.getMessage());
+                Log.w(TAG, "Discovery note: " + e.getMessage());
                 JSObject res = new JSObject();
                 res.put("success", false);
                 res.put("error", e.getMessage());
@@ -244,9 +247,11 @@ public class NearbyConnectionsPlugin extends Plugin {
                 if (endpointId != null && !endpointId.isEmpty()) {
                     connectionsClient.disconnectFromEndpoint(endpointId);
                     connectedEndpoints.remove(endpointId);
+                    endpointNames.remove(endpointId);
                 } else {
                     connectionsClient.stopAllEndpoints();
                     connectedEndpoints.clear();
+                    endpointNames.clear();
                 }
             }
         } catch (Exception e) {
@@ -266,6 +271,7 @@ public class NearbyConnectionsPlugin extends Plugin {
                 connectionsClient.stopDiscovery();
                 connectionsClient.stopAllEndpoints();
                 connectedEndpoints.clear();
+                endpointNames.clear();
             }
         } catch (Exception e) {
             Log.w(TAG, "Error in resetAndRescan: " + e.getMessage());
@@ -297,7 +303,7 @@ public class NearbyConnectionsPlugin extends Plugin {
                 final String target = rawTarget;
                 connectionsClient.sendPayload(target, payload)
                         .addOnSuccessListener(unused -> {
-                            Log.i(TAG, "Payload sent to endpoint: " + target);
+                            Log.i(TAG, "Payload sent to target endpoint: " + target);
                             JSObject res = new JSObject();
                             res.put("success", true);
                             res.put("messageId", msgId);
@@ -322,11 +328,10 @@ public class NearbyConnectionsPlugin extends Plugin {
                 res.put("recipientCount", connectedEndpoints.size());
                 call.resolve(res);
             } else {
-                // If no peers are currently connected, resolve gracefully (stored in queue)
                 JSObject res = new JSObject();
                 res.put("success", true);
                 res.put("messageId", msgId);
-                res.put("note", "Buffered locally (no active P2P peers connected)");
+                res.put("note", "Buffered in offline local queue (no active P2P peers connected)");
                 call.resolve(res);
             }
 
@@ -339,7 +344,10 @@ public class NearbyConnectionsPlugin extends Plugin {
     public void getConnectedEndpoints(PluginCall call) {
         JSArray arr = new JSArray();
         for (String ep : connectedEndpoints) {
-            arr.put(ep);
+            JSObject obj = new JSObject();
+            obj.put("endpointId", ep);
+            obj.put("name", endpointNames.getOrDefault(ep, "Node " + ep.substring(Math.max(0, ep.length() - 4))));
+            arr.put(obj);
         }
         JSObject res = new JSObject();
         res.put("endpoints", arr);
@@ -348,35 +356,45 @@ public class NearbyConnectionsPlugin extends Plugin {
     }
 
     // -------------------------------------------------------------------------
-    // Callbacks matching NearbyConnectionManager.kt from app-debug.apk
+    // Callbacks with Symmetric Multi-Peer State Management & Self-Filtering
     // -------------------------------------------------------------------------
 
     private final EndpointDiscoveryCallback endpointDiscoveryCallback = new EndpointDiscoveryCallback() {
         @Override
         public void onEndpointFound(@NonNull String endpointId, @NonNull DiscoveredEndpointInfo info) {
-            Log.i(TAG, "Discovered endpoint: " + endpointId + " (" + info.getEndpointName() + ")");
+            String peerName = info.getEndpointName();
+
+            // 1. FILTER OUT SELF DEVICE (Never show own device in available list)
+            if (peerName != null && (peerName.equalsIgnoreCase(localDeviceName) || peerName.contains(localDeviceName))) {
+                Log.i(TAG, "Ignored self discovery: " + peerName);
+                return;
+            }
+
+            endpointNames.put(endpointId, peerName);
+            Log.i(TAG, "Discovered peer endpoint: " + endpointId + " (" + peerName + ")");
             
-            // Notify JavaScript UI
+            // Notify React UI
             JSObject data = new JSObject();
             data.put("endpointId", endpointId);
-            data.put("name", info.getEndpointName());
+            data.put("name", peerName);
             data.put("serviceId", info.getServiceId());
             notifyListeners("endpointFound", data);
 
-            // Auto-connect to discovered peers (Matching app-debug.apk automatic mesh forming)
+            // Auto-connect to discovered peers for seamless mesh formation
             try {
                 if (connectionsClient != null && !connectedEndpoints.contains(endpointId)) {
-                    Log.i(TAG, "Auto-requesting connection to discovered peer: " + endpointId);
+                    Log.i(TAG, "Auto-initiating connection to discovered peer: " + endpointId);
                     connectionsClient.requestConnection(localDeviceName, endpointId, connectionLifecycleCallback);
                 }
             } catch (Exception e) {
-                Log.w(TAG, "Auto-connection attempt error: " + e.getMessage());
+                Log.w(TAG, "Auto-connection attempt note: " + e.getMessage());
             }
         }
 
         @Override
         public void onEndpointLost(@NonNull String endpointId) {
             Log.i(TAG, "Lost endpoint: " + endpointId);
+            endpointNames.remove(endpointId);
             JSObject data = new JSObject();
             data.put("endpointId", endpointId);
             notifyListeners("endpointLost", data);
@@ -386,16 +404,21 @@ public class NearbyConnectionsPlugin extends Plugin {
     private final ConnectionLifecycleCallback connectionLifecycleCallback = new ConnectionLifecycleCallback() {
         @Override
         public void onConnectionInitiated(@NonNull String endpointId, @NonNull ConnectionInfo info) {
-            Log.i(TAG, "Connection initiated by: " + endpointId + " (" + info.getEndpointName() + "). Auto-accepting.");
+            String peerName = info.getEndpointName();
+            endpointNames.put(endpointId, peerName);
+            Log.i(TAG, "Connection initiated by/with: " + endpointId + " (" + peerName + "). Auto-accepting on both sides.");
             
+            // Send connectionInitiated event so UI can show 'CONNECTING'
+            JSObject initData = new JSObject();
+            initData.put("endpointId", endpointId);
+            initData.put("name", peerName);
+            initData.put("status", "CONNECTING");
+            notifyListeners("connectionInitiated", initData);
+
             if (connectionsClient != null) {
                 connectionsClient.acceptConnection(endpointId, payloadCallback)
                         .addOnSuccessListener(unused -> {
-                            Log.i(TAG, "Accepted connection from " + endpointId);
-                            JSObject data = new JSObject();
-                            data.put("endpointId", endpointId);
-                            data.put("name", info.getEndpointName());
-                            notifyListeners("connectionInitiated", data);
+                            Log.i(TAG, "Accepted connection handshake from " + endpointId);
                         })
                         .addOnFailureListener(e -> Log.e(TAG, "Failed to accept connection: " + e.getMessage()));
             }
@@ -405,11 +428,13 @@ public class NearbyConnectionsPlugin extends Plugin {
         public void onConnectionResult(@NonNull String endpointId, @NonNull ConnectionResolution result) {
             JSObject data = new JSObject();
             data.put("endpointId", endpointId);
+            String peerName = endpointNames.getOrDefault(endpointId, "Node " + endpointId.substring(Math.max(0, endpointId.length() - 4)));
+            data.put("name", peerName);
 
             if (result.getStatus().getStatusCode() == ConnectionsStatusCodes.STATUS_OK) {
                 connectedEndpoints.add(endpointId);
                 data.put("status", "CONNECTED");
-                Log.i(TAG, "Connected successfully to endpoint: " + endpointId + ". Active peers: " + connectedEndpoints.size());
+                Log.i(TAG, "SUCCESS: Symmetric connection established with " + endpointId + " (" + peerName + "). Total active peers: " + connectedEndpoints.size());
             } else if (result.getStatus().getStatusCode() == ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED) {
                 connectedEndpoints.remove(endpointId);
                 data.put("status", "REJECTED");
@@ -426,6 +451,7 @@ public class NearbyConnectionsPlugin extends Plugin {
         public void onDisconnected(@NonNull String endpointId) {
             Log.i(TAG, "Disconnected from endpoint: " + endpointId);
             connectedEndpoints.remove(endpointId);
+            endpointNames.remove(endpointId);
             
             JSObject data = new JSObject();
             data.put("endpointId", endpointId);
@@ -443,16 +469,19 @@ public class NearbyConnectionsPlugin extends Plugin {
                     JSONObject json = new JSONObject(jsonStr);
                     String msgId = json.optString("id", "msg-" + System.currentTimeMillis());
 
-                    // Deduplication check to prevent loops across mesh hops
+                    // Deduplication check to prevent loops across multi-hop relays
                     if (processedMessageIds.contains(msgId)) {
                         return;
                     }
                     processedMessageIds.add(msgId);
 
+                    String senderName = json.optString("senderName", endpointNames.getOrDefault(endpointId, "Nearby Peer"));
+                    String senderId = json.optString("senderId", endpointId);
+
                     JSObject payloadObj = new JSObject();
                     payloadObj.put("id", msgId);
-                    payloadObj.put("senderId", json.optString("senderId", endpointId));
-                    payloadObj.put("senderName", json.optString("senderName", "Nearby Peer"));
+                    payloadObj.put("senderId", senderId);
+                    payloadObj.put("senderName", senderName);
                     payloadObj.put("content", json.optString("content", ""));
                     payloadObj.put("timestamp", json.optLong("timestamp", System.currentTimeMillis()));
                     payloadObj.put("type", json.optString("type", "CHAT"));
@@ -463,11 +492,11 @@ public class NearbyConnectionsPlugin extends Plugin {
 
                     notifyListeners("payloadReceived", event);
 
-                    // Relay hop to all other connected peers (Delay-Tolerant Multi-Hop Mesh Relay)
+                    // Multi-hop delay-tolerant relay to other connected nodes
                     for (String otherEp : connectedEndpoints) {
                         if (!otherEp.equals(endpointId)) {
                             connectionsClient.sendPayload(otherEp, payload);
-                            Log.i(TAG, "Relayed message " + msgId + " to peer " + otherEp);
+                            Log.i(TAG, "Multi-hop relay: forwarded " + msgId + " to peer " + otherEp);
                         }
                     }
 
