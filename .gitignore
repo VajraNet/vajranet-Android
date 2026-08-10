@@ -4,15 +4,3 @@ dist
 *.log
 .env
 .env.local
-
-# Android build outputs
-android/app/build/
-android/capacitor-android/build/
-android/capacitor-cordova-android-plugins/build/
-android/build/
-android/.gradle/
-android/app/.cxx/
-android/local.properties
-
-# APK kept at root for convenience — exclude intermediates only
-# vajranet-citizen.apk  # uncomment to exclude APK from git too
