@@ -38,6 +38,7 @@ import { Capacitor } from '@capacitor/core';
 import LoginPage from './LoginPage';
 import MeshChat from './MeshChat';
 import DownloadAppPage from './DownloadAppPage';
+import { getOrCreateVajraId } from '../utils/vajraId';
 
 export default function CitizenApp() {
   // Maintenance / Showcase Mode for Web Deployments
@@ -186,15 +187,18 @@ export default function CitizenApp() {
     }
 
     loadResources();
+    const pollInterval = setInterval(loadResources, 12000);
 
     const handleOnline = () => {
       setIsOnline(true);
       syncOfflineQueue();
+      loadResources();
     };
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
+      clearInterval(pollInterval);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -236,9 +240,37 @@ export default function CitizenApp() {
       ]);
     }
 
+    // Fetch official announcements + all live citizen SOS signals across the network
     try {
+      let combinedAlerts = [];
+      
+      // 1. Fetch live SOS signals from all citizens
+      try {
+        const liveSosData = await apiFetch('/sos');
+        if (Array.isArray(liveSosData) && liveSosData.length > 0) {
+          const formattedSos = liveSosData.map(sos => ({
+            id: sos.id || `SOS-${sos.message_id || Date.now()}`,
+            title: `🚨 CITIZEN DISTRESS SOS: ${sos.user_name || sos.reported_by || 'Citizen in Danger'}`,
+            content: sos.message || `Urgent assistance requested at Lat ${sos.latitude?.toFixed ? sos.latitude.toFixed(4) : sos.latitude}, Lon ${sos.longitude?.toFixed ? sos.longitude.toFixed(4) : sos.longitude}`,
+            severity: sos.severity || 'CRITICAL',
+            isLiveSos: true,
+            latitude: sos.latitude,
+            longitude: sos.longitude,
+            created_at: sos.created_at || new Date().toISOString()
+          }));
+          combinedAlerts = [...formattedSos];
+        }
+      } catch (e) {}
+
+      // 2. Fetch government / official disaster broadcasts
       const anns = await apiFetch('/announcements');
-      if (Array.isArray(anns)) setAnnouncements(anns);
+      if (Array.isArray(anns)) {
+        combinedAlerts = [...combinedAlerts, ...anns];
+      }
+
+      if (combinedAlerts.length > 0) {
+        setAnnouncements(combinedAlerts);
+      }
     } catch {
       setAnnouncements([
         { id: 'A-1', title: '⚠️ FLOOD ALERT: Zone B Evacuation Warning', content: 'Move to higher ground immediately. Evacuate Zone B using Route 1.', severity: 'CRITICAL', created_at: new Date().toISOString() },
@@ -948,8 +980,8 @@ export default function CitizenApp() {
               {/* Node Telemetry Grid */}
               <div className="grid grid-cols-2 gap-2.5 text-xs font-mono bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Unique Node ID</span>
-                  <span className="text-slate-900 font-bold">{myDeviceId}</span>
+                  <span className="text-slate-500 block text-[10px]">Unique Vajra ID</span>
+                  <span className="text-[#0077B6] font-black">{user?.vajra_id || getOrCreateVajraId()}</span>
                 </div>
                 <div>
                   <span className="text-slate-500 block text-[10px]">Network Mode</span>
@@ -1148,14 +1180,14 @@ export default function CitizenApp() {
                     </span>
                   </h3>
                   <p className="text-[10px] text-[#D4AF37] font-mono">
-                    {useVercelIframe ? 'vajraai-steel.vercel.app' : 'Offline Protocol Engine'}
+                    {useVercelIframe ? 'vajranetai.vercel.app' : 'Offline Protocol Engine'}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => window.open('https://vajraai-steel.vercel.app', '_blank')}
+                  onClick={() => window.open('https://vajranetai.vercel.app', '_blank')}
                   title="Open in Fullscreen Tab"
                   className="p-1.5 rounded-lg bg-[#07172C] text-slate-300 hover:text-white cursor-pointer border border-slate-700"
                 >
@@ -1174,7 +1206,7 @@ export default function CitizenApp() {
             {useVercelIframe ? (
               <div className="flex-1 w-full bg-slate-900 relative">
                 <iframe
-                  src="https://vajraai-steel.vercel.app"
+                  src="https://vajranetai.vercel.app"
                   title="VajraAI Emergency Assistant"
                   className="w-full h-full border-none"
                   onError={() => setUseVercelIframe(false)}

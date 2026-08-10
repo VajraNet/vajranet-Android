@@ -25,9 +25,11 @@ import {
   Info,
   Layers,
   Smartphone,
-  Flame
+  Flame,
+  Fingerprint
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
+import { getOrCreateVajraId } from '../utils/vajraId';
 
 /**
  * VajraNet MeshChat — Dual-Engine Citizen P2P Emergency Mesh Communication
@@ -36,7 +38,7 @@ import { apiFetch } from '../api/client';
  *    - Google Play Services Nearby Connections (Bluetooth LE / Wi-Fi Direct)
  *    - Service ID: com.vajranet.offline.SERVICE_ID
  *    - Topology: Strategy.P2P_STAR (Star Mesh Network)
- *    - Managed via NearbyConnectionsPlugin
+ *    - Symmetric connection handshake & self-device discovery filter
  * 
  * 2. Web & Cloud Sandbox Mode (Vercel / Browser):
  *    - P2P Emulation via BroadcastChannel across local tabs
@@ -50,32 +52,17 @@ const NearbyConnections = registerPlugin('NearbyConnectionsPlugin');
 export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
   const isNative = Capacitor.isNativePlatform();
 
-  // 1. Local Node Device Name & ID (e.g., Vajra-4821)
+  // 1. Permanent Device / User Unique Vajra ID (e.g., VAJRA-USR-DEL-89241)
+  const [myVajraId] = useState(() => {
+    return user?.vajra_id || getOrCreateVajraId();
+  });
+
   const [localDeviceName] = useState(() => {
-    try {
-      let saved = localStorage.getItem('vajranet_device_name');
-      if (!saved) {
-        const randNum = Math.floor(1000 + Math.random() * 9000).toString(16).toUpperCase();
-        saved = `Vajra-${randNum}`;
-        localStorage.setItem('vajranet_device_name', saved);
-      }
-      return saved;
-    } catch {
-      return `Vajra-${Math.floor(1000 + Math.random() * 9000).toString(16).toUpperCase()}`;
-    }
+    return user?.vajra_id || getOrCreateVajraId();
   });
 
   const [myDeviceId] = useState(() => {
-    try {
-      let saved = localStorage.getItem('vajranet_device_id');
-      if (!saved) {
-        saved = `NODE-${Math.floor(100000 + Math.random() * 900000)}`;
-        localStorage.setItem('vajranet_device_id', saved);
-      }
-      return saved;
-    } catch {
-      return `NODE-${Math.floor(100000 + Math.random() * 900000)}`;
-    }
+    return user?.vajra_id || getOrCreateVajraId();
   });
 
   // 2. Network & Connection States
@@ -84,18 +71,20 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
   const [connectedDevice, setConnectedDevice] = useState(null); // { endpointId, name } | null
   const [isScanning, setIsScanning] = useState(false);
 
-  // 3. Discovered Nearby Devices Pool
+  // 3. Discovered Nearby Devices Pool (Strictly Filters Out Self)
   const [discoveredDevices, setDiscoveredDevices] = useState(() => {
     try {
       const saved = localStorage.getItem('vajranet_discovered_peers');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.filter(d => d.name !== myVajraId && !d.name?.includes(myVajraId));
+      }
     } catch (e) {}
     
-    // Default simulated peers on web so test evaluators can immediately test connectivity
+    // Default simulated peer on web if empty
     if (!isNative) {
       return [
-        { endpointId: 'PEER-782', name: 'Vajra-Relay-782 (Nearby Node)', signalDbm: -54, isVerified: true, lastSeen: 'Active now' },
-        { endpointId: 'PEER-410', name: 'Vajra-Citizen-410 (Field Scout)', signalDbm: -68, isVerified: true, lastSeen: 'Active now' }
+        { endpointId: 'PEER-RELAY-782', name: 'VAJRA-USR-REL-48190', signalDbm: -54, isVerified: true, lastSeen: 'Active now' }
       ];
     }
     return [];
@@ -113,7 +102,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
         id: 'INIT-1',
         senderId: 'SYSTEM',
         senderName: 'VajraNet Mesh Gateway',
-        content: 'Emergency P2P Mesh Engine initialized. Operating on service: com.vajranet.offline.SERVICE_ID.',
+        content: `Emergency P2P Mesh Engine active. Node ID: ${myVajraId}`,
         timestamp: Date.now() - 60000,
         type: 'CHAT',
         isFromMe: false,
@@ -161,9 +150,14 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
   };
 
   const saveDiscoveredDevices = (peersList) => {
-    setDiscoveredDevices(peersList);
+    const cleanList = peersList.filter(d => 
+      d.endpointId !== myDeviceId && 
+      d.name !== myVajraId && 
+      !d.name?.includes(myVajraId)
+    );
+    setDiscoveredDevices(cleanList);
     try {
-      localStorage.setItem('vajranet_discovered_peers', JSON.stringify(peersList));
+      localStorage.setItem('vajranet_discovered_peers', JSON.stringify(cleanList));
     } catch (e) {
       console.warn('Failed to persist peers', e);
     }
@@ -184,15 +178,20 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
             await NearbyConnections.checkAndRequestPermissions().catch(() => {});
           }
 
-          // Start advertising & discovery
-          await NearbyConnections.startAdvertisingAndDiscovery({ deviceName: localDeviceName });
-          console.log('[VajraNet] Native Nearby Advertising & Discovery active.');
+          // Start advertising & discovery with permanent Vajra ID
+          await NearbyConnections.startAdvertisingAndDiscovery({ deviceName: myVajraId });
+          console.log('[VajraNet] Native Nearby active as:', myVajraId);
 
-          // Listener: Endpoint Discovered
+          // Listener: Endpoint Discovered (Filtered against self)
           const subFound = await NearbyConnections.addListener('endpointFound', (data) => {
+            if (!data.name || data.name === myVajraId || data.name.includes(myVajraId)) {
+              return; // Ignore self
+            }
             console.log('[VajraNet] Discovered peer endpoint:', data);
+
             setDiscoveredDevices((prev) => {
-              const exists = prev.findIndex((d) => d.endpointId === data.endpointId);
+              const cleanPrev = prev.filter(d => d.name !== myVajraId && !d.name?.includes(myVajraId));
+              const exists = cleanPrev.findIndex((d) => d.endpointId === data.endpointId);
               const peerObj = {
                 endpointId: data.endpointId,
                 name: data.name || `Node ${data.endpointId.slice(-4)}`,
@@ -200,7 +199,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
                 isVerified: true,
                 lastSeen: 'Active now'
               };
-              const updated = exists >= 0 ? [...prev] : [peerObj, ...prev];
+              const updated = exists >= 0 ? [...cleanPrev] : [peerObj, ...cleanPrev];
               if (exists >= 0) updated[exists] = { ...updated[exists], ...peerObj };
               saveDiscoveredDevices(updated);
               return updated;
@@ -214,7 +213,17 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
           });
           nativeSubs.push(subLost);
 
-          // Listener: Connection Result
+          // Listener: Connection Initiated (Handshake starting)
+          const subInit = await NearbyConnections.addListener('connectionInitiated', (data) => {
+            setConnectionState('CONNECTING');
+            setConnectedDevice({
+              endpointId: data.endpointId,
+              name: data.name || `Node ${data.endpointId.slice(-4)}`
+            });
+          });
+          nativeSubs.push(subInit);
+
+          // Listener: Connection Result (Symmetric on both devices)
           const subConn = await NearbyConnections.addListener('connectionResult', (data) => {
             if (data.status === 'CONNECTED') {
               setConnectionState('CONNECTED');
@@ -224,13 +233,14 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
               });
             } else {
               setConnectionState('DISCONNECTED');
+              setConnectedDevice(null);
             }
           });
           nativeSubs.push(subConn);
 
           // Listener: Disconnected
           const subDisc = await NearbyConnections.addListener('disconnected', (data) => {
-            if (data.endpointId === connectedDevice?.endpointId) {
+            if (data.endpointId === connectedDevice?.endpointId || data.remainingPeers === 0) {
               setConnectionState('DISCONNECTED');
               setConnectedDevice(null);
             }
@@ -285,8 +295,8 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
           serviceId: SERVICE_ID,
           type: 'ENDPOINT_FOUND',
           endpointId: myDeviceId,
-          name: localDeviceName,
-          senderName: user?.name || localDeviceName,
+          name: myVajraId,
+          senderName: user?.name || myVajraId,
           senderId: myDeviceId,
           signalDbm: -56,
           isVerified: !user?.isGuest,
@@ -295,14 +305,18 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
 
         channel.onmessage = (event) => {
           const data = event.data || {};
-          if (!data || data.senderId === myDeviceId) return;
+          // Strict self-filtering
+          if (!data || data.senderId === myDeviceId || data.name === myVajraId || data.name?.includes(myVajraId)) {
+            return;
+          }
 
           if (data.type === 'ENDPOINT_FOUND' || data.type === 'DISCOVERY_PING') {
             const peerEndpointId = data.endpointId || data.senderId;
             const peerName = data.name || data.senderName || `Node ${peerEndpointId.slice(-4)}`;
 
             setDiscoveredDevices((prev) => {
-              const exists = prev.findIndex((d) => d.endpointId === peerEndpointId);
+              const cleanPrev = prev.filter(d => d.name !== myVajraId && !d.name?.includes(myVajraId));
+              const exists = cleanPrev.findIndex((d) => d.endpointId === peerEndpointId);
               const peerObj = {
                 endpointId: peerEndpointId,
                 name: peerName,
@@ -310,19 +324,43 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
                 isVerified: Boolean(data.isVerified),
                 lastSeen: 'Active now'
               };
-              const updated = exists >= 0 ? [...prev] : [peerObj, ...prev];
+              const updated = exists >= 0 ? [...cleanPrev] : [peerObj, ...cleanPrev];
               if (exists >= 0) updated[exists] = { ...updated[exists], ...peerObj };
               saveDiscoveredDevices(updated);
               return updated;
             });
           }
 
+          // Symmetric Connection Handshake on Web
           if (data.type === 'CONNECTION_REQUEST' && data.targetEndpointId === myDeviceId) {
             setConnectionState('CONNECTED');
             setConnectedDevice({
               endpointId: data.senderId,
-              name: data.senderName || `Node ${data.senderId.slice(-4)}`
+              name: data.senderName || data.senderId
             });
+            // Reply with confirmation so both devices show CONNECTED
+            try {
+              channel.postMessage({
+                serviceId: SERVICE_ID,
+                type: 'CONNECTION_ACCEPTED',
+                senderId: myDeviceId,
+                senderName: myVajraId,
+                targetEndpointId: data.senderId
+              });
+            } catch (e) {}
+          }
+
+          if (data.type === 'CONNECTION_ACCEPTED' && data.targetEndpointId === myDeviceId) {
+            setConnectionState('CONNECTED');
+            setConnectedDevice({
+              endpointId: data.senderId,
+              name: data.senderName || data.senderId
+            });
+          }
+
+          if (data.type === 'DISCONNECTED' && (data.targetEndpointId === myDeviceId || data.senderId === connectedDevice?.endpointId)) {
+            setConnectionState('DISCONNECTED');
+            setConnectedDevice(null);
           }
 
           if (data.type === 'NEARBY_PAYLOAD' && data.payload) {
@@ -369,7 +407,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
         NearbyConnections.stopAdvertisingAndDiscovery().catch(() => {});
       }
     };
-  }, [myDeviceId, localDeviceName, isNative]);
+  }, [myDeviceId, myVajraId, isNative]);
 
   // ---------------------------------------------------------------------------
   // User Actions
@@ -381,7 +419,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     setConnectedDevice(null);
 
     if (isNative && NearbyConnections?.resetAndRescan) {
-      NearbyConnections.resetAndRescan({ deviceName: localDeviceName }).finally(() => {
+      NearbyConnections.resetAndRescan({ deviceName: myVajraId }).finally(() => {
         setTimeout(() => setIsScanning(false), 1200);
       });
       return;
@@ -393,8 +431,8 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
         serviceId: SERVICE_ID,
         type: 'DISCOVERY_PING',
         senderId: myDeviceId,
-        name: localDeviceName,
-        senderName: user?.name || localDeviceName,
+        name: myVajraId,
+        senderName: user?.name || myVajraId,
         isVerified: !user?.isGuest,
         timestamp: Date.now()
       });
@@ -414,6 +452,17 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
 
       if (isNative && NearbyConnections?.disconnect) {
         NearbyConnections.disconnect({ endpointId: dev.endpointId }).catch(() => {});
+      } else {
+        try {
+          const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
+          bc.postMessage({
+            serviceId: SERVICE_ID,
+            type: 'DISCONNECTED',
+            senderId: myDeviceId,
+            targetEndpointId: dev.endpointId
+          });
+          setTimeout(() => bc.close(), 100);
+        } catch (e) {}
       }
       return;
     }
@@ -429,9 +478,22 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
       return;
     }
 
-    setTimeout(() => {
+    try {
+      const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
+      bc.postMessage({
+        serviceId: SERVICE_ID,
+        type: 'CONNECTION_REQUEST',
+        senderId: myDeviceId,
+        senderName: myVajraId,
+        targetEndpointId: dev.endpointId
+      });
+      setTimeout(() => {
+        setConnectionState('CONNECTED');
+        bc.close();
+      }, 350);
+    } catch (e) {
       setConnectionState('CONNECTED');
-    }, 450);
+    }
   };
 
   const handleSendMessage = async (e) => {
@@ -445,7 +507,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     const payload = {
       id: msgId,
       senderId: myDeviceId,
-      senderName: user?.name || localDeviceName,
+      senderName: user?.name || myVajraId,
       content: content,
       timestamp: now,
       type: 'CHAT'
@@ -502,13 +564,13 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
       setTimeout(() => bc.close(), 100);
     } catch (e) {}
 
-    // 3. Online Cloud Bridge (Sync to Backend API if internet exists)
+    // 3. Online Cloud Bridge
     if (isInternetAvailable) {
       try {
         await apiFetch('/incidents', {
           method: 'POST',
           body: JSON.stringify({
-            title: `[MeshChat Broadcast] from ${localDeviceName}`,
+            title: `[MeshChat] from ${myVajraId}`,
             description: content,
             type: 'OTHER',
             latitude: gpsCoords?.lat || 28.6139,
@@ -530,12 +592,12 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     const now = Date.now();
     const latStr = gpsCoords?.lat?.toFixed ? gpsCoords.lat.toFixed(4) : '28.6139';
     const lonStr = gpsCoords?.lon?.toFixed ? gpsCoords.lon.toFixed(4) : '77.2090';
-    const sosText = `🚨 DISTRESS SOS BEACON: Urgent assistance needed at GPS (${latStr}, ${lonStr})`;
+    const sosText = `🚨 DISTRESS SOS BEACON from ${myVajraId}: Urgent assistance needed at GPS (${latStr}, ${lonStr})`;
 
     const payload = {
       id: msgId,
       senderId: myDeviceId,
-      senderName: user?.name || localDeviceName,
+      senderName: user?.name || myVajraId,
       content: sosText,
       timestamp: now,
       type: 'SOS'
@@ -608,7 +670,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     <div className="space-y-4 font-sans select-none pb-6">
 
       {/* ========================================================================= */}
-      {/* 1. STATUS CARD (Matches StatusCard.kt in app-debug.apk)                   */}
+      {/* 1. STATUS CARD                                                            */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-3xl p-5 shadow-xl border border-slate-200 space-y-4 text-slate-900">
         
@@ -620,12 +682,12 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-slate-500 font-mono font-bold">MY MESH NODE</span>
+                <span className="text-[10px] text-slate-500 font-mono font-bold">MY UNIQUE NODE ID</span>
                 <span className="text-[9px] bg-blue-100 text-[#0077B6] px-1.5 py-0.2 rounded font-mono font-bold">
-                  {isNative ? 'HARDWARE P2P' : 'WEB P2P_STAR'}
+                  {isNative ? 'HARDWARE P2P' : 'WEB MESH'}
                 </span>
               </div>
-              <h3 className="text-base font-black text-slate-900 font-mono tracking-wide">{localDeviceName}</h3>
+              <h3 className="text-sm font-black text-slate-900 font-mono tracking-wide">{myVajraId}</h3>
             </div>
           </div>
 
@@ -683,7 +745,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
             className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition border border-slate-300 cursor-pointer shadow-sm active:scale-95"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin text-blue-600' : ''}`} />
-            <span>{isScanning ? 'Scanning Radio...' : 'Rescan Nearby Nodes'}</span>
+            <span>{isScanning ? 'Scanning Radio...' : 'Rescan Nodes'}</span>
           </button>
 
           <button
@@ -706,7 +768,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. DISCOVERED PEERS LIST                                                  */}
+      {/* 2. DISCOVERED PEERS LIST (Filtered against Self Device)                   */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-3xl p-5 shadow-xl border border-slate-200 space-y-3 text-slate-900">
         
@@ -714,7 +776,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-[#0077B6]" />
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              Discovered Mesh Nodes ({discoveredDevices.length})
+              Nearby Mesh Peers ({discoveredDevices.length})
             </h4>
           </div>
           <span className="text-[10px] text-slate-500 font-mono">100m Range</span>
@@ -725,8 +787,8 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
               <Radio className="w-5 h-5 animate-spin" />
             </div>
-            <p className="text-xs text-slate-600 font-medium">Scanning for nearby VajraNet devices...</p>
-            <p className="text-[10px] text-slate-400 font-mono">Ensure Bluetooth & Wi-Fi are turned on</p>
+            <p className="text-xs text-slate-600 font-medium">Scanning for other nearby VajraNet devices...</p>
+            <p className="text-[10px] text-slate-400 font-mono">Ensure other device has app open with Bluetooth/Wi-Fi active</p>
           </div>
         ) : (
           <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -751,7 +813,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <strong className="text-xs font-bold text-slate-900">{dev.name}</strong>
+                        <strong className="text-xs font-bold text-slate-900 font-mono">{dev.name}</strong>
                         {dev.isVerified && (
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" title="Verified Peer" />
                         )}
@@ -815,7 +877,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
               >
                 {/* Sender Tag */}
                 <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-500 px-1">
-                  <span>{msg.senderName}</span>
+                  <span className="font-bold">{msg.senderName}</span>
                   <span>•</span>
                   <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
@@ -857,7 +919,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
         <form onSubmit={handleSendMessage} className="flex items-center gap-2 pt-2 border-t border-slate-200">
           <input
             type="text"
-            placeholder="Type message to broadcast over mesh..."
+            placeholder="Broadcast text over offline mesh..."
             value={messageInputText}
             onChange={(e) => setMessageInputText(e.target.value)}
             className="flex-1 bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0077B6] focus:bg-white transition"
