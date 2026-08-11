@@ -31,7 +31,10 @@ import {
   Sun,
   Moon,
   X,
-  Maximize2
+  Maximize2,
+  Camera,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import { Capacitor, registerPlugin } from '@capacitor/core';
@@ -102,6 +105,9 @@ export default function CitizenApp() {
   const [incidentType, setIncidentType] = useState('FLOOD');
   const [incidentSeverity, setIncidentSeverity] = useState('HIGH');
   const [incidentSubmitted, setIncidentSubmitted] = useState(false);
+  const [incidentImageFile, setIncidentImageFile] = useState(null);
+  const [incidentImagePreview, setIncidentImagePreview] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Nearby Help resources & announcements
   const [shelters, setShelters] = useState([]);
@@ -140,13 +146,32 @@ export default function CitizenApp() {
     }
   };
 
-  const syncOfflineQueue = async () => {
-    const currentQ = JSON.parse(localStorage.getItem('vajranet_offline_queue') || '[]');
-    if (currentQ.length === 0 || isSyncingQueue) return;
-    setIsSyncingQueue(true);
+  const uploadCloudinary = async (file) => {
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', 'vajranet_preset');
+      const res = await fetch('https://api.cloudinary.com/v1_1/dsgq3vxk6/image/upload', {
+        method: 'POST',
+        body: fd
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.secure_url || data.url;
+      }
+    } catch (e) {
+      console.warn('Cloudinary upload fallback:', e);
+    }
+    return incidentImagePreview || '';
+  };
 
+  const syncOfflineQueue = async () => {
+    const currentQ = [...offlineQueue];
+    if (currentQ.length === 0 || isSyncingQueue) return;
+
+    setIsSyncingQueue(true);
     const gatewayPayload = {
-      gateway_id: `GATEWAY-CITIZEN-${user?.name?.replace(/\s+/g, '') || 'DEVICE'}`,
+      gateway_id: `GATEWAY-${user?.vajra_id || localStorage.getItem('vajranet_user_permanent_id') || 'CITIZEN-NODE'}`,
       events: currentQ.map(item => ({
         message_id: item.message_id,
         type: item.type,
@@ -198,7 +223,34 @@ export default function CitizenApp() {
     }
 
     loadResources();
-    const pollInterval = setInterval(loadResources, 12000);
+    const pollInterval = setInterval(loadResources, 8000);
+
+    // Subscribe to Web/Local Mesh Bus for Instant Real-Time Alert Feeds
+    let meshBus = null;
+    try {
+      meshBus = new BroadcastChannel('vajranet_p2p_mesh_bus');
+      meshBus.onmessage = (event) => {
+        const data = event.data || {};
+        if (data.type === 'NEARBY_PAYLOAD' || data.type === 'INCIDENT_BROADCAST' || data.message) {
+          const p = data.payload || {};
+          const isSos = (data.type === 'NEARBY_PAYLOAD' && p.type === 'SOS') || Boolean(data.message?.includes('SOS'));
+          const liveAlert = {
+            id: p.id || p.message_id || `LIVE-MESH-${Date.now()}`,
+            title: isSos ? `🚨 LIVE CITIZEN SOS: ${data.senderName || 'Neighbor Node'}` : `⚠️ ${p.type || 'HAZARD'}: ${p.title || 'Live Incident'}`,
+            content: isSos ? (p.content || data.message || 'Distress SOS relayed over peer-to-peer mesh') : (p.description || 'Disaster hazard detected nearby'),
+            severity: isSos ? 'CRITICAL' : (p.severity || 'HIGH'),
+            isLiveSos: isSos,
+            media_urls: p.media_urls || [],
+            created_at: new Date().toISOString()
+          };
+
+          setAnnouncements(prev => {
+            if (prev.some(a => a.id === liveAlert.id)) return prev;
+            return [liveAlert, ...prev];
+          });
+        }
+      };
+    } catch (e) {}
 
     const handleOnline = () => {
       setIsOnline(true);
@@ -210,6 +262,7 @@ export default function CitizenApp() {
     window.addEventListener('offline', handleOffline);
     return () => {
       clearInterval(pollInterval);
+      if (meshBus) meshBus.close();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -274,10 +327,30 @@ export default function CitizenApp() {
       } catch (e) {}
 
       // 2. Fetch government / official disaster broadcasts
-      const anns = await apiFetch('/announcements');
-      if (Array.isArray(anns)) {
-        combinedAlerts = [...combinedAlerts, ...anns];
-      }
+      try {
+        const anns = await apiFetch('/announcements');
+        if (Array.isArray(anns)) {
+          combinedAlerts = [...combinedAlerts, ...anns];
+        }
+      } catch (e) {}
+
+      // 3. Fetch verified disaster incidents & hazards
+      try {
+        const incidentsData = await apiFetch('/incidents');
+        if (Array.isArray(incidentsData) && incidentsData.length > 0) {
+          const formattedIncidents = incidentsData.map(inc => ({
+            id: inc.id || `INC-${inc.message_id || Date.now()}`,
+            title: `⚠️ ${inc.type || inc.disaster_type || 'HAZARD'}: ${inc.title || 'Ground Hazard Reported'}`,
+            content: inc.description || 'Ground hazard reported in this sector.',
+            severity: inc.severity || 'HIGH',
+            media_urls: inc.media_urls || (inc.image_url ? [inc.image_url] : []),
+            latitude: inc.latitude,
+            longitude: inc.longitude,
+            created_at: inc.created_at || inc.reported_at || new Date().toISOString()
+          }));
+          combinedAlerts = [...combinedAlerts, ...formattedIncidents];
+        }
+      } catch (e) {}
 
       if (combinedAlerts.length > 0) {
         setAnnouncements(combinedAlerts);
@@ -376,6 +449,12 @@ export default function CitizenApp() {
   const handleReportIncident = async (e) => {
     e.preventDefault();
     if (!incidentTitle.trim()) return;
+    setIsUploadingImage(true);
+
+    let uploadedUrl = null;
+    if (incidentImageFile) {
+      uploadedUrl = await uploadCloudinary(incidentImageFile);
+    }
 
     const msgId = `INC-CITIZEN-${Date.now()}`;
     const payload = {
@@ -385,10 +464,46 @@ export default function CitizenApp() {
       latitude: gpsCoords.lat,
       longitude: gpsCoords.lon,
       severity: incidentSeverity,
-      media_urls: [],
-      reported_by: user?.name || 'Guest Citizen'
+      media_urls: uploadedUrl ? [uploadedUrl] : [],
+      reported_by: user?.name || 'Guest Citizen',
+      message_id: msgId
     };
 
+    // 1. Broadcast to local web P2P mesh bus
+    try {
+      const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
+      bc.postMessage({
+        type: 'INCIDENT_BROADCAST',
+        senderId: user?.vajra_id || localStorage.getItem('vajranet_user_permanent_id') || `NODE-${Date.now()}`,
+        senderName: user?.name || 'Citizen',
+        payload: payload
+      });
+      setTimeout(() => bc.close(), 100);
+    } catch (e) {}
+
+    // 2. Broadcast via Native Nearby Connections if on native
+    if (Capacitor.isNativePlatform() && NearbyConnections && NearbyConnections.sendMessage) {
+      NearbyConnections.sendMessage({
+        content: `INCIDENT: [${incidentSeverity}] ${incidentTitle} - ${incidentDesc}`,
+        type: 'INCIDENT',
+        id: msgId
+      }).catch(() => {});
+    }
+
+    // 3. Inject directly into current Citizen Alerts feed
+    const localAlert = {
+      id: msgId,
+      title: `⚠️ ${incidentType}: ${incidentTitle}`,
+      content: incidentDesc || 'Disaster hazard reported by citizen.',
+      severity: incidentSeverity,
+      media_urls: uploadedUrl ? [uploadedUrl] : [],
+      latitude: gpsCoords.lat,
+      longitude: gpsCoords.lon,
+      created_at: new Date().toISOString()
+    };
+    setAnnouncements(prev => [localAlert, ...prev]);
+
+    // 4. Transmit to API or buffer in offline queue
     try {
       await apiFetch('/incidents', {
         method: 'POST',
@@ -400,11 +515,13 @@ export default function CitizenApp() {
         message_id: msgId,
         type: 'INCIDENT',
         created_at: new Date().toISOString(),
-        origin_device_id: localStorage.getItem('vajranet_device_id') || `DEVICE-${user?.phone || 'ANON'}`,
+        origin_device_id: user?.vajra_id || localStorage.getItem('vajranet_user_permanent_id') || `DEVICE-${user?.phone || 'ANON'}`,
         payload: payload
       };
       saveQueue([...offlineQueue, offlineEvent]);
       setIncidentSubmitted(true);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -779,6 +896,66 @@ export default function CitizenApp() {
               </div>
             </div>
 
+            {/* DIRECT 1-TAP EMERGENCY HELPLINE CALL GRID */}
+            <div className="space-y-2 pt-2">
+              <h3 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? 'text-[#D4AF37]' : 'text-slate-700'}`}>
+                📞 Direct Emergency Helplines (1-Tap Dial)
+              </h3>
+              <div className="grid grid-cols-2 gap-2.5">
+                <a
+                  href="tel:112"
+                  className="p-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-2xl flex items-center gap-2.5 shadow-sm transition active:scale-95 text-left"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black text-xs shadow shrink-0">
+                    112
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-rose-900 leading-tight">National SOS</h4>
+                    <p className="text-[10px] text-rose-600 font-mono">Disaster & Police</p>
+                  </div>
+                </a>
+
+                <a
+                  href="tel:1078"
+                  className="p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-2xl flex items-center gap-2.5 shadow-sm transition active:scale-95 text-left"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-[#0077B6] text-white flex items-center justify-center font-black text-xs shadow shrink-0">
+                    1078
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-blue-900 leading-tight">NDRF Control</h4>
+                    <p className="text-[10px] text-blue-600 font-mono">Disaster Force</p>
+                  </div>
+                </a>
+
+                <a
+                  href="tel:108"
+                  className="p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-2xl flex items-center gap-2.5 shadow-sm transition active:scale-95 text-left"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-[#059669] text-white flex items-center justify-center font-black text-xs shadow shrink-0">
+                    108
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-emerald-900 leading-tight">Ambulance</h4>
+                    <p className="text-[10px] text-emerald-600 font-mono">Medical Trauma</p>
+                  </div>
+                </a>
+
+                <a
+                  href="tel:101"
+                  className="p-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-2xl flex items-center gap-2.5 shadow-sm transition active:scale-95 text-left"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center font-black text-xs shadow shrink-0">
+                    101
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-amber-900 leading-tight">Fire Brigade</h4>
+                    <p className="text-[10px] text-amber-600 font-mono">Fire & Rescue</p>
+                  </div>
+                </a>
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -976,6 +1153,16 @@ export default function CitizenApp() {
                     <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">
                       {ann.content}
                     </p>
+
+                    {ann.media_urls && ann.media_urls.length > 0 && (
+                      <div className="flex items-center gap-2 pt-1">
+                        {ann.media_urls.map((imgUrl, i) => (
+                          <a key={i} href={imgUrl} target="_blank" rel="noreferrer" className="block relative group">
+                            <img src={imgUrl} alt="Hazard Photo" className="w-16 h-16 rounded-xl object-cover border border-slate-300 shadow-sm" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1047,6 +1234,22 @@ export default function CitizenApp() {
                   </div>
                 </div>
               </div>
+
+              {/* Testing Utility: Wipe Cache & Reset ID */}
+              <button
+                onClick={() => {
+                  localStorage.removeItem('vajranet_user_permanent_id');
+                  localStorage.removeItem('vajranet_discovered_peers');
+                  localStorage.removeItem('vajranet_offline_queue');
+                  localStorage.removeItem('vajranet_citizen_user');
+                  localStorage.removeItem('vajranet_mesh_messages');
+                  window.location.reload();
+                }}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Wipe Node Cache & Generate Fresh ID (Testing)</span>
+              </button>
 
               {/* Log out / Switch User */}
               <button
@@ -1168,11 +1371,62 @@ export default function CitizenApp() {
                   </div>
                 </div>
 
+                {/* Photo Evidence with Cloudinary Upload */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-[#0077B6]" />
+                    <span>Attach Photo Evidence (Cloudinary Auto-Upload)</span>
+                  </label>
+                  
+                  <div className="flex items-center gap-3">
+                    <label className="flex-1 border-2 border-dashed border-slate-300 hover:border-[#0077B6] rounded-2xl p-3 flex flex-col items-center justify-center gap-1 cursor-pointer bg-slate-50 transition">
+                      <Upload className="w-5 h-5 text-[#0077B6]" />
+                      <span className="text-[11px] text-slate-700 font-bold">Choose or Take Photo</span>
+                      <span className="text-[9px] text-slate-400 font-mono">JPG, PNG, WebP up to 10MB</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setIncidentImageFile(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setIncidentImagePreview(reader.result);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {incidentImagePreview && (
+                      <div className="relative w-16 h-16 rounded-xl border border-[#0077B6] overflow-hidden shrink-0 shadow">
+                        <img src={incidentImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => { setIncidentImageFile(null); setIncidentImagePreview(null); }}
+                          className="absolute top-0.5 right-0.5 bg-rose-600 text-white rounded-full p-0.5 shadow cursor-pointer"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <button
                   type="submit"
-                  className="w-full py-3 bg-[#059669] hover:bg-[#047857] text-white font-bold text-xs rounded-xl shadow-lg transition cursor-pointer"
+                  disabled={isUploadingImage}
+                  className="w-full py-3 bg-[#059669] hover:bg-[#047857] text-white font-bold text-xs rounded-xl shadow-lg transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
                 >
-                  Submit Incident Report →
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Uploading Photo & Submitting...</span>
+                    </>
+                  ) : (
+                    <span>Submit Incident Report →</span>
+                  )}
                 </button>
               </form>
             )}

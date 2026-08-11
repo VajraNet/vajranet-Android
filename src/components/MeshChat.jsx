@@ -71,20 +71,12 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
   const [connectedDevice, setConnectedDevice] = useState(null); // { endpointId, name } | null
   const [isScanning, setIsScanning] = useState(false);
 
-  // 3. Discovered Nearby Devices Pool (Strictly Filters Out Self)
+  // 3. Discovered Nearby Devices Pool (Strictly Filters Out Self & Ephemeral)
   const [discoveredDevices, setDiscoveredDevices] = useState(() => {
-    try {
-      const saved = localStorage.getItem('vajranet_discovered_peers');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.filter(d => d.name !== myVajraId && !d.name?.includes(myVajraId));
-      }
-    } catch (e) {}
-    
     // Default simulated peer on web if empty
     if (!isNative) {
       return [
-        { endpointId: 'PEER-RELAY-782', name: 'VAJRA-USR-REL-48190', signalDbm: -54, isVerified: true, lastSeen: 'Active now' }
+        { endpointId: 'PEER-RELAY-782', name: 'VAJRA-USR-REL-48190', signalDbm: -54, isVerified: true, lastSeen: 'Active now', lastSeenTimestamp: Date.now() }
       ];
     }
     return [];
@@ -156,12 +148,19 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
       !d.name?.includes(myVajraId)
     );
     setDiscoveredDevices(cleanList);
-    try {
-      localStorage.setItem('vajranet_discovered_peers', JSON.stringify(cleanList));
-    } catch (e) {
-      console.warn('Failed to persist peers', e);
-    }
   };
+
+  // 20-Second Ephemeral Peer Reaper (Auto-purges stale/uninstalled devices)
+  useEffect(() => {
+    const reaper = setInterval(() => {
+      const now = Date.now();
+      setDiscoveredDevices(prev => prev.filter(d => {
+        if (!d.lastSeenTimestamp) return true;
+        return (now - d.lastSeenTimestamp) < 20000;
+      }));
+    }, 5000);
+    return () => clearInterval(reaper);
+  }, []);
 
   // ---------------------------------------------------------------------------
   // P2P Engine Lifecycle (Native Nearby Connections + Web Emulation Bus)
@@ -217,7 +216,7 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
           });
           nativeSubs.push(subBle);
 
-          // Listener: Endpoint Discovered (Filtered against self)
+          // Listener: Endpoint Discovered (Filtered against self & with TTL timestamp)
           const subFound = await NearbyConnections.addListener('endpointFound', (data) => {
             if (!data.name || data.name === myVajraId || data.name.includes(myVajraId)) {
               return; // Ignore self
@@ -232,7 +231,8 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
                 name: data.name || `Node ${data.endpointId.slice(-4)}`,
                 signalDbm: data.signalDbm || -60,
                 isVerified: true,
-                lastSeen: 'Active now'
+                lastSeen: 'Active now',
+                lastSeenTimestamp: Date.now()
               };
               const updated = exists >= 0 ? [...cleanPrev] : [peerObj, ...cleanPrev];
               if (exists >= 0) updated[exists] = { ...updated[exists], ...peerObj };
