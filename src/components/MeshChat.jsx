@@ -171,16 +171,51 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     let channel;
 
     if (isNative && NearbyConnections) {
-      // 1. NATIVE ANDROID HARDWARE RADIO
+      // 1. NATIVE ANDROID HARDWARE RADIO (P2P_CLUSTER + BLE SOS Beaconing)
       const initNativeNearby = async () => {
         try {
           if (NearbyConnections.checkAndRequestPermissions) {
             await NearbyConnections.checkAndRequestPermissions().catch(() => {});
           }
 
-          // Start advertising & discovery with permanent Vajra ID
-          await NearbyConnections.startAdvertisingAndDiscovery({ deviceName: myVajraId });
-          console.log('[VajraNet] Native Nearby active as:', myVajraId);
+          // Auto-start 24/7 background mesh relay service
+          if (NearbyConnections.startBackgroundMeshService) {
+            NearbyConnections.startBackgroundMeshService().catch((e) => console.log('Mesh service start:', e));
+          }
+
+          // Start advertising & discovery with permanent Vajra ID (P2P_CLUSTER)
+          await NearbyConnections.startAdvertisingAndDiscovery({ 
+            deviceName: myVajraId,
+            autoConnect: true 
+          });
+          console.log('[VajraNet] Native P2P_CLUSTER Mesh active as:', myVajraId);
+
+          // Listener: Raw Fast BLE SOS Beacon Received (<150ms zero-handshake delivery)
+          const subBle = await NearbyConnections.addListener('bleSosBeaconReceived', (beacon) => {
+            console.log('[VajraNet] Raw BLE SOS Beacon detected:', beacon);
+            const beaconMsg = {
+              id: beacon.id || `BLE-${Date.now()}`,
+              senderId: 'BLE_BROADCAST',
+              senderName: '🚨 Raw BLE SOS Broadcast',
+              content: `PROXIMITY DISTRESS BEACON: Severity [${beacon.severity}] at GPS (${beacon.latitude?.toFixed ? beacon.latitude.toFixed(4) : beacon.latitude}, ${beacon.longitude?.toFixed ? beacon.longitude.toFixed(4) : beacon.longitude}). RSSI: ${beacon.rssi || -50} dBm`,
+              timestamp: beacon.timestamp || Date.now(),
+              type: 'SOS',
+              isFromMe: false,
+              deliveryStatus: 'DELIVERED',
+              isBleRaw: true
+            };
+
+            setMessages((prev) => {
+              if (prev.some(m => m.id === beaconMsg.id)) return prev;
+              const updated = [...prev, beaconMsg];
+              saveMessages(updated);
+              return updated;
+            });
+
+            setSosBannerText(`🚨 PROXIMITY BLE SOS BEACON DETECTED (${beacon.severity})`);
+            setTimeout(() => setSosBannerText(null), 10000);
+          });
+          nativeSubs.push(subBle);
 
           // Listener: Endpoint Discovered (Filtered against self)
           const subFound = await NearbyConnections.addListener('endpointFound', (data) => {
@@ -261,7 +296,8 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
               timestamp: p.timestamp || Date.now(),
               type: p.type || 'CHAT',
               isFromMe: false,
-              deliveryStatus: 'DELIVERED'
+              deliveryStatus: 'DELIVERED',
+              hops: p.hops || 0
             };
 
             setMessages((prev) => {
@@ -626,15 +662,24 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
     setSosBannerText('🚨 Emergency SOS Beacon Broadcasted over Mesh Network!');
     setTimeout(() => setSosBannerText(null), 6000);
 
-    // 1. Native Hardware SOS Broadcast
-    if (isNative && NearbyConnections?.sendMessage) {
-      NearbyConnections.sendMessage({
-        content: sosText,
-        type: 'SOS',
-        id: msgId,
-        targetEndpointId: connectedDevice?.endpointId || null
-      }).catch((err) => console.warn('Native Nearby SOS error', err));
-      return;
+    // 1. Native Hardware SOS Broadcast (Nearby Connections + Fast BLE Beacon)
+    if (isNative) {
+      if (NearbyConnections?.sendMessage) {
+        NearbyConnections.sendMessage({
+          content: sosText,
+          type: 'SOS',
+          id: msgId,
+          targetEndpointId: connectedDevice?.endpointId || null
+        }).catch((err) => console.warn('Native Nearby SOS error', err));
+      }
+      if (NearbyConnections?.broadcastBleSosBeacon) {
+        NearbyConnections.broadcastBleSosBeacon({
+          lat: Number(gpsCoords?.lat || 28.6139),
+          lon: Number(gpsCoords?.lon || 77.2090),
+          severity: 'CRITICAL',
+          vajraId: myVajraId
+        }).catch((err) => console.log('BLE Beacon error:', err));
+      }
     }
 
     // 2. Web Local Emulation Broadcast

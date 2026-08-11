@@ -34,11 +34,13 @@ import {
   Maximize2
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import LoginPage from './LoginPage';
 import MeshChat from './MeshChat';
 import DownloadAppPage from './DownloadAppPage';
 import { getOrCreateVajraId } from '../utils/vajraId';
+
+const NearbyConnections = registerPlugin('NearbyConnectionsPlugin');
 
 export default function CitizenApp() {
   // Maintenance / Showcase Mode for Web Deployments
@@ -186,6 +188,15 @@ export default function CitizenApp() {
       );
     }
 
+    if (Capacitor.isNativePlatform() && NearbyConnections) {
+      if (NearbyConnections.checkAndRequestPermissions) {
+        NearbyConnections.checkAndRequestPermissions().catch(() => {});
+      }
+      if (NearbyConnections.startBackgroundMeshService) {
+        NearbyConnections.startBackgroundMeshService().catch(() => {});
+      }
+    }
+
     loadResources();
     const pollInterval = setInterval(loadResources, 12000);
 
@@ -303,7 +314,26 @@ export default function CitizenApp() {
     };
     setAnnouncements(prev => [liveCitizenAlert, ...prev]);
 
-    // Broadcast across P2P mesh bus
+    // 1. Native Hardware SOS Broadcast (P2P_CLUSTER + Fast BLE Beacon)
+    if (Capacitor.isNativePlatform() && NearbyConnections) {
+      if (NearbyConnections.broadcastBleSosBeacon) {
+        NearbyConnections.broadcastBleSosBeacon({
+          lat: Number(gpsCoords.lat),
+          lon: Number(gpsCoords.lon),
+          severity: sosType,
+          vajraId: user?.vajra_id || getOrCreateVajraId()
+        }).catch((err) => console.log('BLE beacon error:', err));
+      }
+      if (NearbyConnections.sendMessage) {
+        NearbyConnections.sendMessage({
+          content: payload.message,
+          type: 'SOS',
+          id: msgId
+        }).catch((err) => console.log('Nearby SOS error:', err));
+      }
+    }
+
+    // 2. Broadcast across web P2P mesh bus (Browser emulation)
     try {
       const bc = new BroadcastChannel('vajranet_p2p_mesh_bus');
       bc.postMessage({
