@@ -41,18 +41,34 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import LoginPage from './LoginPage';
 import MeshChat from './MeshChat';
 import DownloadAppPage from './DownloadAppPage';
+import MapView from './MapView';
 import { getOrCreateVajraId } from '../utils/vajraId';
 
 const NearbyConnections = registerPlugin('NearbyConnectionsPlugin');
 
 export default function CitizenApp() {
   // Maintenance / Showcase Mode for Web Deployments
-  const [bypassDownloadPage, setBypassDownloadPage] = useState(false);
+  const [bypassDownloadPage, setBypassDownloadPage] = useState(true);
   const isWeb = !Capacitor.isNativePlatform();
   const isDownloadPageActive = Boolean(
     isWeb && 
+    !bypassDownloadPage &&
     (import.meta.env.VITE_MAINTENANCE_MODE === 'true' || import.meta.env.VITE_SHOW_DOWNLOAD_PAGE === 'true')
   );
+
+  // User state (Persisted in localStorage, defaults to Guest Citizen)
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vajranet_citizen_user');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    const defaultUser = { name: 'Citizen Guest', phone: '9876543210', isGuest: true, vajraId: 'VAJRA-778912' };
+    try {
+      localStorage.setItem('vajranet_citizen_user', JSON.stringify(defaultUser));
+    } catch (e) {}
+    return defaultUser;
+  });
+
   // Theme State: 'dark' | 'light'
   const [theme, setTheme] = useState(() => {
     try {
@@ -72,8 +88,9 @@ export default function CitizenApp() {
     }
   };
 
-  // Navigation State: 'home' | 'help' | 'mesh' | 'alerts' | 'profile' | 'report'
+  // Navigation State: 'home' | 'help' | 'map' | 'mesh' | 'alerts' | 'profile' | 'report'
   const [activeTab, setActiveTab] = useState('home');
+  const [focusedMapLocation, setFocusedMapLocation] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [gpsCoords, setGpsCoords] = useState({ lat: 28.6139, lon: 77.2090, accuracy: 'High (4m)' });
 
@@ -89,15 +106,7 @@ export default function CitizenApp() {
   const [assignedSosId, setAssignedSosId] = useState(null);
   const [sosStatus, setSosStatus] = useState('SENT');
 
-  // User state (Persisted in localStorage)
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('vajranet_citizen_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+
 
   // Incident reporting state
   const [incidentTitle, setIncidentTitle] = useState('');
@@ -110,9 +119,20 @@ export default function CitizenApp() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Nearby Help resources & announcements
-  const [shelters, setShelters] = useState([]);
-  const [hospitals, setHospitals] = useState([]);
-  const [reliefCenters, setReliefCenters] = useState([]);
+  const [shelters, setShelters] = useState([
+    { id: 'SH-1', name: 'Sector 4 Indoor Stadium Relief Camp', address: 'Sports Complex, Sector 4', capacity: 800, available_capacity: 340, status: 'OPEN', distance_km: 0.8, lat: 12.9750, lng: 77.5900 },
+    { id: 'SH-2', name: 'Model High School Shelter', address: 'Station Road, Gate 1', capacity: 400, available_capacity: 20, status: 'OPEN', distance_km: 1.4, lat: 12.9680, lng: 77.6010 }
+  ]);
+  const [hospitals, setHospitals] = useState([
+    { id: 'HOSP-1', name: 'Apex Trauma & Emergency Hospital', address: 'Ring Road, Sector 7', available_beds: 42, icu_available: 8, emergency_available: true, distance_km: 1.2, lat: 12.9780, lng: 77.5980 },
+    { id: 'HOSP-2', name: 'Red Cross Field Hospital', address: 'Naval Dock Gate 3', available_beds: 28, icu_available: 4, emergency_available: true, distance_km: 2.1, lat: 12.9650, lng: 77.5890 }
+  ]);
+  const [reliefCenters, setReliefCenters] = useState([
+    { id: 'RC-1', name: 'VajraNet Central Ration & Water Depot', address: 'Community Hall Block B', supplies: { food: 'Available', water: 'Available', medicine: 'Limited', blankets: 'Available' }, distance_km: 0.9, lat: 12.9720, lng: 77.5930 }
+  ]);
+  const [sosAlerts, setSosAlerts] = useState([
+    { id: 'SOS-1', title: 'Distress Signal', details: 'Flood evacuation help requested', lat: 12.9710, lng: 77.5960, severity: 'CRITICAL' }
+  ]);
   const [announcements, setAnnouncements] = useState([]);
   const [helpSubTab, setHelpSubTab] = useState('shelters'); // 'shelters' | 'hospitals' | 'relief'
 
@@ -567,6 +587,10 @@ export default function CitizenApp() {
           setUser(userData);
           localStorage.setItem('vajranet_citizen_user', JSON.stringify(userData));
         }} 
+        onGuestLogin={(guestData) => {
+          setUser(guestData);
+          localStorage.setItem('vajranet_citizen_user', JSON.stringify(guestData));
+        }}
         onSkip={(guestData) => {
           setUser(guestData);
           localStorage.setItem('vajranet_citizen_user', JSON.stringify(guestData));
@@ -657,7 +681,7 @@ export default function CitizenApp() {
       </header>
 
       {/* ==================== 2. MAIN CONTENT CANVAS ==================== */}
-      <main className="flex-1 p-4 pb-24 overflow-y-auto space-y-4">
+      <main className={`flex-1 overflow-y-auto ${activeTab === 'map' ? 'p-1 pb-20' : 'p-4 pb-24 space-y-4'}`}>
         
         {/* ===================== VIEW 1: HOME (EMERGENCY FIRST) ===================== */}
         {activeTab === 'home' && (
@@ -959,6 +983,8 @@ export default function CitizenApp() {
           </div>
         )}
 
+
+
         {/* ===================== VIEW 2: NEARBY HELP (SHELTERS, HOSPITALS, RELIEF) ===================== */}
         {activeTab === 'help' && (
           <div className="space-y-4">
@@ -975,8 +1001,8 @@ export default function CitizenApp() {
               </button>
             </div>
 
-            {/* 3 Segmented Sub-Tabs */}
-            <div className="grid grid-cols-3 bg-white p-1 rounded-2xl border border-slate-200 text-xs font-bold shadow-md">
+            {/* 4 Segmented Sub-Tabs */}
+            <div className="grid grid-cols-4 bg-white p-1 rounded-2xl border border-slate-200 text-[11px] font-bold shadow-md text-center">
               <button
                 onClick={() => setHelpSubTab('shelters')}
                 className={`py-2 rounded-xl transition cursor-pointer ${
@@ -1001,6 +1027,14 @@ export default function CitizenApp() {
               >
                 🎁 Relief
               </button>
+              <button
+                onClick={() => setHelpSubTab('map')}
+                className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1 ${
+                  helpSubTab === 'map' ? 'bg-teal-700 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                🗺️ Map
+              </button>
             </div>
 
             {/* A. Shelters List */}
@@ -1022,9 +1056,20 @@ export default function CitizenApp() {
                         <span className="text-slate-500 block text-[9px]">Available Capacity</span>
                         <span className="text-[#059669] font-bold">{sh.available_capacity || (sh.capacity - (sh.occupied || 0))} Beds</span>
                       </div>
-                      <div>
-                        <span className="text-slate-500 block text-[9px]">Distance</span>
-                        <span className="text-slate-800 font-bold">{sh.distance_km || 0.8} km away</span>
+                      <div className="flex flex-col justify-between">
+                        <div>
+                          <span className="text-slate-500 block text-[9px]">Distance</span>
+                          <span className="text-slate-800 font-bold">{sh.distance_km || 0.8} km away</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setFocusedMapLocation({ lat: sh.lat || 12.9750, lng: sh.lng || 77.5900, zoom: 16 });
+                            setHelpSubTab('map');
+                          }}
+                          className="mt-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold rounded-lg transition flex items-center justify-center gap-1 shadow-xs"
+                        >
+                          <MapPin className="w-3 h-3" /> View Map
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1100,6 +1145,19 @@ export default function CitizenApp() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* D. Interactive Map View */}
+            {helpSubTab === 'map' && (
+              <div className="animate-fadeIn space-y-3">
+                <MapView 
+                  shelters={shelters} 
+                  hospitals={hospitals} 
+                  reliefCenters={reliefCenters} 
+                  sosAlerts={sosAlerts} 
+                  focusedLocation={focusedMapLocation}
+                />
               </div>
             )}
 
@@ -1574,6 +1632,8 @@ export default function CitizenApp() {
           <Navigation className="w-5 h-5" />
           <span className="text-[9px]">Nearby Help</span>
         </button>
+
+
 
         {/* 3. ⭐ OFFLINE MESH (THE HERO CENTER BEACON) */}
         <button
