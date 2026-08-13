@@ -26,11 +26,7 @@
     <!-- Android 13+ (API 33+) Nearby Wi-Fi Devices Permission -->
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
 
-    <!-- SMS Emergency Dispatch: Citizen only SENDS SOS, never receives -->
-    <uses-permission android:name="android.permission.SEND_SMS" />
-
-    <!-- Declare Telephony and Bluetooth as optional for Google Play Protect compatibility -->
-    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <!-- Declare Bluetooth as optional for Google Play Protect compatibility -->
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 

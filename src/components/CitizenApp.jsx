@@ -448,7 +448,7 @@ export default function CitizenApp() {
       console.warn('Broadcast failed', e);
     }
 
-    // Transmit to Government and Volunteer feeds (or fallback to Trusted SMS + DTN Queue)
+    // Transmit to Government and Volunteer feeds (or fallback to P2P Offline Mesh Queue)
     try {
       const res = await apiFetch('/sos', {
         method: 'POST',
@@ -458,7 +458,7 @@ export default function CitizenApp() {
       setSosStatus('RECEIVED');
       setSosSent(true);
     } catch (err) {
-      // Buffer in offline DTN mesh queue
+      // 1. Buffer in offline DTN mesh queue
       const offlineEvent = {
         message_id: msgId,
         type: 'SOS',
@@ -470,39 +470,27 @@ export default function CitizenApp() {
       setAssignedSosId(`MESH-RELAY-${Math.floor(100 + Math.random() * 900)}`);
       setSosStatus('SENT');
       setSosSent(true);
-
-      // Trigger 1-Tap Fallback Emergency SMS Dispatch to Registered Trusted Relay Numbers & Emergency Contacts
-      try {
-        let trustedPhones = [];
-        try {
-          const cached = localStorage.getItem('vajranet_trusted_phones');
-          if (cached) trustedPhones = JSON.parse(cached);
-        } catch (e) {}
-
-        const targetNumber = trustedPhones.length > 0 ? trustedPhones[0].phone : (emergencyContacts[0]?.phone || '112');
-        const mapUrl = `https://maps.google.com/?q=${gpsCoords.lat},${gpsCoords.lon}`;
-        const smsContent = `🚨 VAJRANET EMERGENCY SOS\nFrom: ${user?.name || 'Citizen'}\nUrgency: ${sosType}\nGPS: ${gpsCoords.lat}, ${gpsCoords.lon}\nMap: ${mapUrl}\nNotes: ${sosNotes.trim() || 'Immediate disaster dispatch requested.'}`;
-        
-        // Trigger Silent Background 1-Tap SMS Dispatch on Native Android (Zero Popups/App Picker)
-        if (Capacitor.isNativePlatform() && NearbyConnections && NearbyConnections.sendDirectSms) {
-          NearbyConnections.sendDirectSms({
-            phone: targetNumber,
-            message: smsContent
-          }).then(() => {
-            console.log('⚡ Silent Background SMS SOS Dispatched to ' + targetNumber);
-          }).catch((err) => {
-            console.warn('Silent SMS error, falling back to intent:', err);
-            window.location.href = `sms:${targetNumber}?body=${encodeURIComponent(smsContent)}`;
-          });
-        } else {
-          // Web Browser Fallback
-          window.location.href = `sms:${targetNumber}?body=${encodeURIComponent(smsContent)}`;
-        }
-      } catch (smsErr) {
-        console.warn('SMS dispatch fallback error:', smsErr);
-      }
     } finally {
       setSosSubmitting(false);
+    }
+  };
+
+  const handleOpenSmsApp = () => {
+    try {
+      let trustedPhones = [];
+      try {
+        const cached = localStorage.getItem('vajranet_trusted_phones');
+        if (cached) trustedPhones = JSON.parse(cached);
+      } catch (e) {}
+
+      const targetNumber = trustedPhones.length > 0 ? trustedPhones[0].phone : (emergencyContacts[0]?.phone || '112');
+      const mapUrl = `https://maps.google.com/?q=${gpsCoords.lat},${gpsCoords.lon}`;
+      const smsContent = `🚨 VAJRANET EMERGENCY SOS\nFrom: ${user?.name || 'Citizen'}\nUrgency: ${sosType}\nGPS: ${gpsCoords.lat}, ${gpsCoords.lon}\nMap: ${mapUrl}\nNotes: ${sosNotes.trim() || 'Immediate disaster dispatch requested.'}`;
+      
+      // Standard 2-Click Native Android SMS Intent (Opens default SMS / Google Messages app with prefilled text)
+      window.location.href = `sms:${targetNumber}?body=${encodeURIComponent(smsContent)}`;
+    } catch (e) {
+      console.warn('Failed to open SMS app:', e);
     }
   };
 
@@ -812,6 +800,16 @@ export default function CitizenApp() {
                   </div>
                 </div>
 
+                {/* Direct 2-Click Native SMS Fallback Option */}
+                <button
+                  type="button"
+                  onClick={handleOpenSmsApp}
+                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-200 cursor-pointer"
+                >
+                  <span>📱</span>
+                  <span>Direct Emergency SMS (Opens Messaging App)</span>
+                </button>
+
                 {/* Telemetry Footer */}
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-mono">
                   <span>📍 GPS: {gpsCoords.lat}, {gpsCoords.lon}</span>
@@ -825,7 +823,9 @@ export default function CitizenApp() {
                   <CheckCircle2 className="w-8 h-8 animate-bounce" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-mono text-rose-700 font-bold uppercase tracking-wider block">BEACON ACTIVE ACROSS 3 FEEDS</span>
+                  <span className="text-[10px] font-mono text-rose-700 font-bold uppercase tracking-wider block">
+                    {isOnline ? 'ONLINE DISPATCH CONFIRMED' : '📶 OFFLINE MESH BEACON BROADCASTING'}
+                  </span>
                   <h2 className="text-xl font-black text-slate-900 mt-0.5">SOS #{assignedSosId}</h2>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                     {isOnline 
@@ -844,6 +844,16 @@ export default function CitizenApp() {
                     <span className="text-rose-700 font-bold">{sosType}</span>
                   </div>
                 </div>
+
+                {/* 2-CLICK EMERGENCY SMS FALLBACK BUTTON */}
+                <button
+                  type="button"
+                  onClick={handleOpenSmsApp}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs rounded-2xl transition active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span className="text-sm">📱</span>
+                  <span>Send SMS via Default Messages App</span>
+                </button>
 
                 <button
                   onClick={() => setSosSent(false)}

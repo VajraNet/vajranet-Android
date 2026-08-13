@@ -92,12 +92,6 @@ import java.util.concurrent.ConcurrentHashMap;
                 Manifest.permission.NEARBY_WIFI_DEVICES
             }, 
             alias = "nearbyWifi"
-        ),
-        @Permission(
-            strings = {
-                Manifest.permission.SEND_SMS
-            },
-            alias = "sms"
         )
     }
 )

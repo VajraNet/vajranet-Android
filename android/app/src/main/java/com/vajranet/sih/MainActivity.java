@@ -44,11 +44,6 @@ public class MainActivity extends BridgeActivity {
 
         List<String> permissionsToRequest = new ArrayList<>();
 
-        // SMS Permission: Citizens only SEND emergency SOS, never receive
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-            permissionsToRequest.add(Manifest.permission.SEND_SMS);
-        }
-
         // Location Permissions for GPS Distress Tagging
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
