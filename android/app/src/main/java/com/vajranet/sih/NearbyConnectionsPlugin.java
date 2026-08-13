@@ -95,9 +95,7 @@ import java.util.concurrent.ConcurrentHashMap;
         ),
         @Permission(
             strings = {
-                Manifest.permission.SEND_SMS,
-                Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.READ_SMS
+                Manifest.permission.SEND_SMS
             },
             alias = "sms"
         )
