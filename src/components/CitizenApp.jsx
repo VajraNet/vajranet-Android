@@ -240,6 +240,13 @@ export default function CitizenApp() {
       if (NearbyConnections.startBackgroundMeshService) {
         NearbyConnections.startBackgroundMeshService().catch(() => {});
       }
+      if (NearbyConnections.startAdvertisingAndDiscovery) {
+        const vId = user?.vajra_id || localStorage.getItem('vajranet_user_permanent_id') || `VAJRA-${Date.now()}`;
+        NearbyConnections.startAdvertisingAndDiscovery({
+          deviceName: vId,
+          autoConnect: true
+        }).catch(() => {});
+      }
     }
 
     loadResources();

@@ -1,9 +1,15 @@
 package com.vajranet.sih;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
+import android.provider.Settings;
+import android.util.Log;
 import android.webkit.WebStorage;
 import android.webkit.WebView;
 import androidx.core.app.ActivityCompat;
@@ -15,6 +21,7 @@ import java.util.List;
 
 public class MainActivity extends BridgeActivity {
 
+    private static final String TAG = "VajraMainActivity";
     private static final int INITIAL_PERMISSIONS_REQUEST_CODE = 2026;
 
     @Override
@@ -34,9 +41,43 @@ public class MainActivity extends BridgeActivity {
             e.printStackTrace();
         }
 
-        // 2. Request all required emergency permissions on app startup once
-        // So that SOS button can dispatch SMS silently without any prompts later
+        // 2. Start 24/7 Persistent Foreground Service for Lock-Screen Mesh Relay
+        startMeshForegroundService();
+
+        // 3. Request Battery Optimization Exemption for Screen-Off Peer Discovery
+        requestBatteryExemption();
+
+        // 4. Request all required emergency permissions on app startup once
         requestInitialDisasterPermissions();
+    }
+
+    private void startMeshForegroundService() {
+        try {
+            Intent serviceIntent = new Intent(this, VajraMeshService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+            Log.i(TAG, "VajraMeshService started for 24/7 background screen-off mesh relay");
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to start VajraMeshService: " + e.getMessage());
+        }
+    }
+
+    private void requestBatteryExemption() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Battery optimization intent note: " + e.getMessage());
+            }
+        }
     }
 
     private void requestInitialDisasterPermissions() {
@@ -44,7 +85,7 @@ public class MainActivity extends BridgeActivity {
 
         List<String> permissionsToRequest = new ArrayList<>();
 
-        // Location Permissions for GPS Distress Tagging
+        // Location Permissions for GPS Distress Tagging & Wi-Fi Scanning
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
         }
@@ -52,7 +93,7 @@ public class MainActivity extends BridgeActivity {
             permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         }
 
-        // Bluetooth Permissions for Hardware Offline Mesh
+        // Bluetooth Permissions for Hardware Offline Mesh (Android 12+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(Manifest.permission.BLUETOOTH_SCAN);
@@ -65,10 +106,13 @@ public class MainActivity extends BridgeActivity {
             }
         }
 
-        // Notifications
+        // Android 13+ Notifications & Nearby Wi-Fi Devices
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.NEARBY_WIFI_DEVICES);
             }
         }
 

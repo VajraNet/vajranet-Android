@@ -506,6 +506,7 @@ public class NearbyConnectionsPlugin extends Plugin {
             buffer.putInt(vajraId.hashCode());
 
             AdvertiseData data = new AdvertiseData.Builder()
+                    .addServiceUuid(new ParcelUuid(VAJRA_BLE_SERVICE_UUID))
                     .addManufacturerData(VAJRA_MANUFACTURER_ID, buffer.array())
                     .setIncludeDeviceName(false)
                     .build();
@@ -568,17 +569,25 @@ public class NearbyConnectionsPlugin extends Plugin {
         if (bleScanner == null || isBleScanning) return;
 
         try {
-            ScanFilter filter = new ScanFilter.Builder()
+            List<ScanFilter> filters = new ArrayList<>();
+            filters.add(new ScanFilter.Builder()
+                    .setServiceUuid(new ParcelUuid(VAJRA_BLE_SERVICE_UUID))
+                    .build());
+            filters.add(new ScanFilter.Builder()
                     .setManufacturerData(VAJRA_MANUFACTURER_ID, new byte[]{})
-                    .build();
+                    .build());
 
-            ScanSettings settings = new ScanSettings.Builder()
-                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-                    .build();
+            ScanSettings.Builder settingsBuilder = new ScanSettings.Builder()
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
 
-            bleScanner.startScan(Collections.singletonList(filter), settings, bleScanCallback);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                settingsBuilder.setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE);
+                settingsBuilder.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES);
+            }
+
+            bleScanner.startScan(filters, settingsBuilder.build(), bleScanCallback);
             isBleScanning = true;
-            Log.i(TAG, "VajraNet BLE SOS Scanner active");
+            Log.i(TAG, "VajraNet Screen-Off BLE SOS Scanner active");
         } catch (Exception e) {
             Log.w(TAG, "BLE Scanner init note: " + e.getMessage());
         }
@@ -846,29 +855,4 @@ public class NearbyConnectionsPlugin extends Plugin {
             notifyListeners("payloadTransferUpdate", data);
         }
     };
-
-    @PluginMethod
-    public void sendDirectSms(PluginCall call) {
-        String phone = call.getString("phone");
-        String message = call.getString("message");
-
-        if (phone == null || message == null) {
-            call.reject("Phone number and message content are required");
-            return;
-        }
-
-        try {
-            android.telephony.SmsManager smsManager = android.telephony.SmsManager.getDefault();
-            smsManager.sendTextMessage(phone, null, message, null, null);
-            Log.i("NearbyPlugin", "⚡ Silent Background SMS Sent to: " + phone);
-
-            JSObject ret = new JSObject();
-            ret.put("success", true);
-            ret.put("phone", phone);
-            call.resolve(ret);
-        } catch (Exception e) {
-            Log.e("NearbyPlugin", "Failed to send background SMS", e);
-            call.reject("SMS dispatch error: " + e.getMessage());
-        }
-    }
 }
