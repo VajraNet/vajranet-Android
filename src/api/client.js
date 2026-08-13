@@ -3,9 +3,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://vajranet-back
 export async function apiFetch(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   
+  const token = localStorage.getItem('vajranet_token') || localStorage.getItem('token');
   const defaultHeaders = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
   };
 
   const config = {

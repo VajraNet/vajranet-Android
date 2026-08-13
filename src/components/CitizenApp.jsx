@@ -233,6 +233,7 @@ export default function CitizenApp() {
       );
     }
 
+    let nativeSubs = [];
     if (Capacitor.isNativePlatform() && NearbyConnections) {
       if (NearbyConnections.checkAndRequestPermissions) {
         NearbyConnections.checkAndRequestPermissions().catch(() => {});
@@ -247,10 +248,96 @@ export default function CitizenApp() {
           autoConnect: true
         }).catch(() => {});
       }
+
+      // Universal Root Mesh Listeners: Autonomous Gateway Relay & Live Alerts Sync
+      const setupNativeListeners = async () => {
+        try {
+          const subPayload = await NearbyConnections.addListener('payloadReceived', async (event) => {
+            const p = event.payload || {};
+            if (!p.id) return;
+            const isSos = p.type === 'SOS' || (p.content && p.content.includes('SOS'));
+
+            // 1. If this device has Internet, automatically act as an Autonomous Gateway Relay!
+            if (isSos && navigator.onLine) {
+              try {
+                await apiFetch('/sos', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    message_id: p.id,
+                    message: p.content || 'Disaster SOS Relayed via Peer Mesh',
+                    severity: 'CRITICAL',
+                    latitude: p.latitude || gpsCoords.lat,
+                    longitude: p.longitude || gpsCoords.lon
+                  })
+                });
+                console.log('⚡ [Gateway Relay] Relayed peer SOS to Cloud Backend:', p.id);
+              } catch (e) {
+                console.warn('Gateway relay API note:', e);
+              }
+            }
+
+            // 2. Add to local citizen live alerts feed & Map markers
+            const newAlert = {
+              id: p.id,
+              title: isSos ? `🚨 LIVE CITIZEN SOS: ${p.senderName || 'Neighbor Node'}` : `⚠️ ${p.type || 'HAZARD'}: Distress Signal`,
+              content: p.content || 'Emergency distress relayed via offline mesh.',
+              severity: isSos ? 'CRITICAL' : 'HIGH',
+              isLiveSos: isSos,
+              created_at: new Date().toISOString()
+            };
+            setAnnouncements(prev => [newAlert, ...prev.filter(a => a.id !== newAlert.id)]);
+
+            if (isSos && p.latitude && p.longitude) {
+              setSosAlerts(prev => [
+                {
+                  id: p.id,
+                  title: `🚨 SOS (${p.severity || 'CRITICAL'}): ${p.senderName || 'Citizen'}`,
+                  details: p.content || 'Emergency Assistance Requested',
+                  lat: Number(p.latitude),
+                  lng: Number(p.longitude),
+                  severity: p.severity || 'CRITICAL'
+                },
+                ...prev.filter(s => s.id !== p.id)
+              ]);
+            }
+          });
+
+          const subBle = await NearbyConnections.addListener('bleSosBeaconReceived', async (beacon) => {
+            const bleAlert = {
+              id: beacon.id || `BLE-${Date.now()}`,
+              title: `🚨 PROXIMITY BLE SOS: ${beacon.severity || 'CRITICAL'}`,
+              content: `Direct BLE distress beacon detected near (${beacon.latitude?.toFixed ? beacon.latitude.toFixed(4) : beacon.latitude}, ${beacon.longitude?.toFixed ? beacon.longitude.toFixed(4) : beacon.longitude}). RSSI: ${beacon.rssi || -50} dBm`,
+              severity: beacon.severity || 'CRITICAL',
+              isLiveSos: true,
+              created_at: new Date().toISOString()
+            };
+            setAnnouncements(prev => [bleAlert, ...prev.filter(a => a.id !== bleAlert.id)]);
+
+            if (beacon.latitude && beacon.longitude) {
+              setSosAlerts(prev => [
+                {
+                  id: beacon.id,
+                  title: `🚨 BLE SOS (${beacon.severity})`,
+                  details: `Direct Hardware Beacon (RSSI: ${beacon.rssi || -50} dBm)`,
+                  lat: Number(beacon.latitude),
+                  lng: Number(beacon.longitude),
+                  severity: beacon.severity || 'CRITICAL'
+                },
+                ...prev.filter(s => s.id !== beacon.id)
+              ]);
+            }
+          });
+
+          nativeSubs.push(subPayload, subBle);
+        } catch (e) {
+          console.warn('Native mesh listeners init note:', e);
+        }
+      };
+      setupNativeListeners();
     }
 
     loadResources();
-    const pollInterval = setInterval(loadResources, 8000);
+    const pollInterval = setInterval(loadResources, 6000);
 
     // Subscribe to Web/Local Mesh Bus for Instant Real-Time Alert Feeds
     let meshBus = null;
@@ -290,6 +377,7 @@ export default function CitizenApp() {
     return () => {
       clearInterval(pollInterval);
       if (meshBus) meshBus.close();
+      nativeSubs.forEach(s => { if (s && s.remove) s.remove(); });
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -335,7 +423,7 @@ export default function CitizenApp() {
     try {
       let combinedAlerts = [];
       
-      // 1. Fetch live SOS signals from all citizens
+      // 1. Fetch live SOS signals from ALL citizens across network
       try {
         const liveSosData = await apiFetch('/sos');
         if (Array.isArray(liveSosData) && liveSosData.length > 0) {
@@ -350,6 +438,17 @@ export default function CitizenApp() {
             created_at: sos.created_at || new Date().toISOString()
           }));
           combinedAlerts = [...formattedSos];
+
+          // Populate live SOS markers for the interactive MapView
+          const mapMarkers = liveSosData.map(sos => ({
+            id: sos.id,
+            title: `🚨 SOS (${sos.severity || 'CRITICAL'}): ${sos.user_name || 'Citizen'}`,
+            details: sos.message || 'Distress Alert',
+            lat: Number(sos.latitude || gpsCoords.lat),
+            lng: Number(sos.longitude || gpsCoords.lon),
+            severity: sos.severity || 'CRITICAL'
+          }));
+          setSosAlerts(mapMarkers);
         }
       } catch (e) {}
 

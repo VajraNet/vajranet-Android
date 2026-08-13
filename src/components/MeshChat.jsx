@@ -311,6 +311,19 @@ export default function MeshChat({ user, gpsCoords, onTriggerSOS }) {
             if (p.type === 'SOS') {
               setSosBannerText(`🚨 SOS Received from ${p.senderName}: "${p.content}"`);
               setTimeout(() => setSosBannerText(null), 8000);
+
+              if (navigator.onLine) {
+                apiFetch('/sos', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    message_id: p.id,
+                    message: p.content || 'Disaster SOS Relayed via Peer Mesh',
+                    severity: 'CRITICAL',
+                    latitude: p.latitude || gpsCoords?.lat || 12.9716,
+                    longitude: p.longitude || gpsCoords?.lon || 77.5946
+                  })
+                }).catch(() => {});
+              }
             }
           });
           nativeSubs.push(subPayload);

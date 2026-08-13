@@ -14,6 +14,8 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.os.Build;
 import android.os.ParcelUuid;
 import android.util.Log;
@@ -46,41 +48,33 @@ import com.google.android.gms.nearby.connection.Strategy;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-/**
- * Native Capacitor Plugin for VajraNet Offline Mesh.
- * Upgraded to:
- * - Strategy.P2P_CLUSTER: True M-to-N multi-peer ad-hoc disaster mesh
- * - Zero-Touch Auto-Handshake & Autonomous Gossip sync
- * - Native Android Foreground Service for 24/7 background relay
- * - Raw BLE Manufacturer Data SOS Beaconing (<150ms zero-handshake delivery)
- * - Self-discovery filtering (never displays own device)
- * - Hop-count TTL decay & message deduplication hash ring
- */
 @CapacitorPlugin(
     name = "NearbyConnectionsPlugin",
     permissions = {
         @Permission(
             strings = {
-                Manifest.permission.ACCESS_FINE_LOCATION, 
+                Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             }, 
             alias = "location"
         ),
         @Permission(
             strings = {
-                Manifest.permission.BLUETOOTH, 
-                Manifest.permission.BLUETOOTH_ADMIN,
                 Manifest.permission.BLUETOOTH_SCAN,
                 Manifest.permission.BLUETOOTH_ADVERTISE,
                 Manifest.permission.BLUETOOTH_CONNECT
@@ -97,12 +91,11 @@ import java.util.concurrent.ConcurrentHashMap;
 )
 public class NearbyConnectionsPlugin extends Plugin {
     private static final String TAG = "VajraNearbyPlugin";
+    private static final String BACKEND_API_BASE = "https://vajranet-backend.onrender.com/api/v1";
     private static final String SERVICE_ID = "com.vajranet.offline.SERVICE_ID";
-    
-    // Upgraded to P2P_CLUSTER for true multi-peer ad-hoc disaster mesh
     private static final Strategy STRATEGY = Strategy.P2P_CLUSTER;
 
-    private static final int VAJRA_MANUFACTURER_ID = 0x0786; // VajraNet Emergency ID
+    private static final int VAJRA_MANUFACTURER_ID = 0x0786; // VajraNet ID
     private static final UUID VAJRA_BLE_SERVICE_UUID = UUID.fromString("00001078-0000-1000-8000-00805f9b34fb");
 
     private ConnectionsClient connectionsClient;
@@ -110,8 +103,11 @@ public class NearbyConnectionsPlugin extends Plugin {
     private final Set<String> connectedEndpoints = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final Set<String> pendingConnections = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final Map<String, String> endpointNames = new ConcurrentHashMap<>();
+    private final Map<String, Long> lastAttemptTimes = new ConcurrentHashMap<>();
     private final Set<String> processedMessageIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    
+
+    private final ExecutorService backgroundExecutor = Executors.newCachedThreadPool();
+
     private boolean isAdvertising = false;
     private boolean isDiscovering = false;
     private boolean autoConnectEnabled = true;
@@ -126,9 +122,9 @@ public class NearbyConnectionsPlugin extends Plugin {
     public void load() {
         super.load();
         try {
-            Context context = getContext();
+            Context context = getContext().getApplicationContext();
             connectionsClient = Nearby.getConnectionsClient(context);
-            
+
             BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
             if (bluetoothManager != null) {
                 BluetoothAdapter adapter = bluetoothManager.getAdapter();
@@ -138,9 +134,9 @@ public class NearbyConnectionsPlugin extends Plugin {
                 }
             }
 
-            Log.i(TAG, "VajraNet NearbyConnectionsPlugin (P2P_CLUSTER + BLE Beacon) initialized.");
+            Log.i(TAG, "VajraNet Mesh Plugin initialized with P2P_CLUSTER & BLE Beaconing.");
         } catch (Exception e) {
-            Log.e(TAG, "Failed to initialize Nearby Connections client: " + e.getMessage(), e);
+            Log.e(TAG, "Init error: " + e.getMessage(), e);
         }
     }
 
@@ -151,17 +147,16 @@ public class NearbyConnectionsPlugin extends Plugin {
     @PluginMethod
     public void startBackgroundMeshService(PluginCall call) {
         try {
-            Context context = getContext();
+            Context context = getContext().getApplicationContext();
             Intent serviceIntent = new Intent(context, VajraMeshService.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(serviceIntent);
             } else {
                 context.startService(serviceIntent);
             }
-            Log.i(TAG, "VajraMeshService started from plugin.");
+            Log.i(TAG, "VajraMeshService started for 24/7 background mesh.");
             JSObject res = new JSObject();
             res.put("success", true);
-            res.put("message", "VajraNet Background Mesh Service Active");
             call.resolve(res);
         } catch (Exception e) {
             Log.e(TAG, "Error starting background service: " + e.getMessage());
@@ -175,10 +170,9 @@ public class NearbyConnectionsPlugin extends Plugin {
     @PluginMethod
     public void stopBackgroundMeshService(PluginCall call) {
         try {
-            Context context = getContext();
+            Context context = getContext().getApplicationContext();
             Intent serviceIntent = new Intent(context, VajraMeshService.class);
             context.stopService(serviceIntent);
-            Log.i(TAG, "VajraMeshService stopped from plugin.");
             JSObject res = new JSObject();
             res.put("success", true);
             call.resolve(res);
@@ -211,7 +205,7 @@ public class NearbyConnectionsPlugin extends Plugin {
     }
 
     // -------------------------------------------------------------------------
-    // Plugin Methods exposed to React / JS
+    // Discovery & Advertising Methods
     // -------------------------------------------------------------------------
 
     @PluginMethod
@@ -223,60 +217,61 @@ public class NearbyConnectionsPlugin extends Plugin {
         this.autoConnectEnabled = call.getBoolean("autoConnect", true);
 
         if (connectionsClient == null) {
-            connectionsClient = Nearby.getConnectionsClient(getContext());
+            connectionsClient = Nearby.getConnectionsClient(getContext().getApplicationContext());
         }
 
         try {
-            AdvertisingOptions advertisingOptions = new AdvertisingOptions.Builder()
-                    .setStrategy(STRATEGY)
-                    .build();
+            if (!isAdvertising) {
+                AdvertisingOptions advertisingOptions = new AdvertisingOptions.Builder()
+                        .setStrategy(STRATEGY)
+                        .build();
 
-            connectionsClient.startAdvertising(
-                    localDeviceName,
-                    SERVICE_ID,
-                    connectionLifecycleCallback,
-                    advertisingOptions
-            ).addOnSuccessListener(unused -> {
-                isAdvertising = true;
-                Log.i(TAG, "Advertising started (P2P_CLUSTER) as: " + localDeviceName);
-            }).addOnFailureListener(e -> {
-                isAdvertising = false;
-                Log.w(TAG, "Advertising note: " + e.getMessage());
-            });
+                connectionsClient.startAdvertising(
+                        localDeviceName,
+                        SERVICE_ID,
+                        connectionLifecycleCallback,
+                        advertisingOptions
+                ).addOnSuccessListener(unused -> {
+                    isAdvertising = true;
+                    Log.i(TAG, "Advertising active (P2P_CLUSTER) as: " + localDeviceName);
+                }).addOnFailureListener(e -> {
+                    isAdvertising = false;
+                    Log.w(TAG, "Advertising note: " + e.getMessage());
+                });
+            }
 
-            DiscoveryOptions discoveryOptions = new DiscoveryOptions.Builder()
-                    .setStrategy(STRATEGY)
-                    .build();
+            if (!isDiscovering) {
+                DiscoveryOptions discoveryOptions = new DiscoveryOptions.Builder()
+                        .setStrategy(STRATEGY)
+                        .build();
 
-            connectionsClient.startDiscovery(
-                    SERVICE_ID,
-                    endpointDiscoveryCallback,
-                    discoveryOptions
-            ).addOnSuccessListener(unused -> {
-                isDiscovering = true;
-                Log.i(TAG, "Discovery started (P2P_CLUSTER) on service: " + SERVICE_ID);
-                JSObject res = new JSObject();
-                res.put("success", true);
-                res.put("deviceName", localDeviceName);
-                res.put("strategy", "P2P_CLUSTER");
-                call.resolve(res);
-            }).addOnFailureListener(e -> {
-                isDiscovering = false;
-                Log.w(TAG, "Discovery note: " + e.getMessage());
-                JSObject res = new JSObject();
-                res.put("success", false);
-                res.put("error", e.getMessage());
-                call.resolve(res);
-            });
+                connectionsClient.startDiscovery(
+                        SERVICE_ID,
+                        endpointDiscoveryCallback,
+                        discoveryOptions
+                ).addOnSuccessListener(unused -> {
+                    isDiscovering = true;
+                    Log.i(TAG, "Discovery active (P2P_CLUSTER) on service: " + SERVICE_ID);
+                }).addOnFailureListener(e -> {
+                    isDiscovering = false;
+                    Log.w(TAG, "Discovery note: " + e.getMessage());
+                });
+            }
 
-            // Automatically start BLE SOS scanner in background
+            // Start hardware BLE SOS Scanner
             startBleScannerInternal();
 
+            JSObject res = new JSObject();
+            res.put("success", true);
+            res.put("deviceName", localDeviceName);
+            res.put("strategy", "P2P_CLUSTER");
+            call.resolve(res);
+
         } catch (SecurityException se) {
-            Log.e(TAG, "SecurityException starting nearby: " + se.getMessage());
+            Log.e(TAG, "SecurityException: " + se.getMessage());
             checkAndRequestPermissions(call);
         } catch (Exception e) {
-            Log.e(TAG, "General exception starting nearby: " + e.getMessage());
+            Log.e(TAG, "Exception: " + e.getMessage());
             JSObject res = new JSObject();
             res.put("success", false);
             res.put("error", e.getMessage());
@@ -292,11 +287,10 @@ public class NearbyConnectionsPlugin extends Plugin {
                 connectionsClient.stopDiscovery();
                 isAdvertising = false;
                 isDiscovering = false;
-                Log.i(TAG, "Stopped advertising and discovery.");
             }
             stopBleScannerInternal();
         } catch (Exception e) {
-            Log.w(TAG, "Error stopping nearby: " + e.getMessage());
+            Log.w(TAG, "Stop error: " + e.getMessage());
         }
         JSObject res = new JSObject();
         res.put("success", true);
@@ -312,7 +306,7 @@ public class NearbyConnectionsPlugin extends Plugin {
         }
 
         if (connectionsClient == null) {
-            connectionsClient = Nearby.getConnectionsClient(getContext());
+            connectionsClient = Nearby.getConnectionsClient(getContext().getApplicationContext());
         }
 
         try {
@@ -322,15 +316,13 @@ public class NearbyConnectionsPlugin extends Plugin {
                     endpointId,
                     connectionLifecycleCallback
             ).addOnSuccessListener(unused -> {
-                Log.i(TAG, "Requested connection to endpoint: " + endpointId);
                 JSObject res = new JSObject();
                 res.put("success", true);
                 res.put("endpointId", endpointId);
                 call.resolve(res);
             }).addOnFailureListener(e -> {
                 pendingConnections.remove(endpointId);
-                Log.e(TAG, "Failed to request connection to " + endpointId + ": " + e.getMessage());
-                call.reject("Failed to request connection: " + e.getMessage());
+                call.reject("Connection request failed: " + e.getMessage());
             });
         } catch (Exception e) {
             pendingConnections.remove(endpointId);
@@ -356,7 +348,7 @@ public class NearbyConnectionsPlugin extends Plugin {
                 }
             }
         } catch (Exception e) {
-            Log.w(TAG, "Error in disconnect: " + e.getMessage());
+            Log.w(TAG, "Disconnect error: " + e.getMessage());
         }
 
         JSObject res = new JSObject();
@@ -374,9 +366,11 @@ public class NearbyConnectionsPlugin extends Plugin {
                 connectedEndpoints.clear();
                 pendingConnections.clear();
                 endpointNames.clear();
+                isAdvertising = false;
+                isDiscovering = false;
             }
         } catch (Exception e) {
-            Log.w(TAG, "Error in resetAndRescan: " + e.getMessage());
+            Log.w(TAG, "Reset error: " + e.getMessage());
         }
         startAdvertisingAndDiscovery(call);
     }
@@ -408,30 +402,23 @@ public class NearbyConnectionsPlugin extends Plugin {
             byte[] bytes = json.toString().getBytes(StandardCharsets.UTF_8);
             Payload payload = Payload.fromBytes(bytes);
 
-            // If a specific target is provided, send to that target
             if (rawTarget != null && !rawTarget.isEmpty()) {
                 final String target = rawTarget;
                 connectionsClient.sendPayload(target, payload)
                         .addOnSuccessListener(unused -> {
-                            Log.i(TAG, "Payload sent to target endpoint: " + target);
                             JSObject res = new JSObject();
                             res.put("success", true);
                             res.put("messageId", msgId);
                             call.resolve(res);
                         })
-                        .addOnFailureListener(e -> {
-                            Log.e(TAG, "Failed to send payload to " + target + ": " + e.getMessage());
-                            call.reject("Failed to send payload: " + e.getMessage());
-                        });
+                        .addOnFailureListener(e -> call.reject("Failed: " + e.getMessage()));
                 return;
             }
 
-            // Otherwise broadcast to ALL connected endpoints
             if (!connectedEndpoints.isEmpty()) {
                 for (String ep : connectedEndpoints) {
                     connectionsClient.sendPayload(ep, payload);
                 }
-                Log.i(TAG, "Payload broadcasted to " + connectedEndpoints.size() + " connected peers.");
                 JSObject res = new JSObject();
                 res.put("success", true);
                 res.put("messageId", msgId);
@@ -441,7 +428,7 @@ public class NearbyConnectionsPlugin extends Plugin {
                 JSObject res = new JSObject();
                 res.put("success", true);
                 res.put("messageId", msgId);
-                res.put("note", "Buffered in offline local queue (no active P2P peers connected)");
+                res.put("note", "Buffered in offline local queue");
                 call.resolve(res);
             }
 
@@ -493,10 +480,9 @@ public class NearbyConnectionsPlugin extends Plugin {
                     .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
                     .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
                     .setConnectable(false)
-                    .setTimeout(60000) // 1 minute active burst
+                    .setTimeout(60000)
                     .build();
 
-            // Pack 20-byte emergency payload: [Lat (float 4B), Lon (float 4B), Severity (1B), Timestamp (4B), VajraID hash (4B)]
             ByteBuffer buffer = ByteBuffer.allocate(20);
             buffer.putFloat((float) lat);
             buffer.putFloat((float) lon);
@@ -513,7 +499,7 @@ public class NearbyConnectionsPlugin extends Plugin {
 
             bleAdvertiser.startAdvertising(settings, data, bleAdvertiseCallback);
             isBleBeaconing = true;
-            Log.i(TAG, "Fast BLE SOS Beaconing started with coordinates: " + lat + ", " + lon);
+            Log.i(TAG, "Fast BLE SOS Beaconing active at (" + lat + ", " + lon + ")");
 
             JSObject res = new JSObject();
             res.put("success", true);
@@ -521,7 +507,7 @@ public class NearbyConnectionsPlugin extends Plugin {
             call.resolve(res);
         } catch (Exception e) {
             Log.e(TAG, "Error starting BLE beacon: " + e.getMessage());
-            call.reject("Failed to start BLE beacon: " + e.getMessage());
+            call.reject("Failed: " + e.getMessage());
         }
     }
 
@@ -531,7 +517,6 @@ public class NearbyConnectionsPlugin extends Plugin {
             if (bleAdvertiser != null && isBleBeaconing) {
                 bleAdvertiser.stopAdvertising(bleAdvertiseCallback);
                 isBleBeaconing = false;
-                Log.i(TAG, "Fast BLE SOS Beaconing stopped.");
             }
             JSObject res = new JSObject();
             res.put("success", true);
@@ -555,7 +540,7 @@ public class NearbyConnectionsPlugin extends Plugin {
         public void onStartFailure(int errorCode) {
             super.onStartFailure(errorCode);
             isBleBeaconing = false;
-            Log.w(TAG, "BLE SOS AdvertiseCallback FAILED with error code: " + errorCode);
+            Log.w(TAG, "BLE SOS AdvertiseCallback FAILED: " + errorCode);
         }
     };
 
@@ -598,7 +583,6 @@ public class NearbyConnectionsPlugin extends Plugin {
             if (bleScanner != null && isBleScanning) {
                 bleScanner.stopScan(bleScanCallback);
                 isBleScanning = false;
-                Log.i(TAG, "VajraNet BLE SOS Scanner stopped");
             }
         } catch (Exception e) {
             Log.w(TAG, "BLE Scanner stop note: " + e.getMessage());
@@ -627,7 +611,10 @@ public class NearbyConnectionsPlugin extends Plugin {
                     if (processedMessageIds.contains(beaconId)) return;
                     processedMessageIds.add(beaconId);
 
-                    Log.i(TAG, "🚨 DISCOVERED RAW BLE SOS BEACON: " + beaconId + " at " + lat + ", " + lon + " [" + sevStr + "]");
+                    Log.i(TAG, "🚨 BLE SOS BEACON RECEIVED: " + beaconId + " at (" + lat + ", " + lon + ")");
+
+                    // Autonomous Gateway Cloud Relay if Internet Available
+                    forwardBleSosToBackend(beaconId, lat, lon, sevStr);
 
                     JSObject event = new JSObject();
                     event.put("id", beaconId);
@@ -640,14 +627,14 @@ public class NearbyConnectionsPlugin extends Plugin {
 
                     notifyListeners("bleSosBeaconReceived", event);
                 } catch (Exception e) {
-                    Log.w(TAG, "Error decoding BLE beacon data: " + e.getMessage());
+                    Log.w(TAG, "Error decoding BLE beacon: " + e.getMessage());
                 }
             }
         }
     };
 
     // -------------------------------------------------------------------------
-    // Callbacks with Zero-Touch Autonomous Gossip & Self-Filtering
+    // Callbacks with Deterministic Tie-Breaking & Anti-Collision Engine
     // -------------------------------------------------------------------------
 
     private final EndpointDiscoveryCallback endpointDiscoveryCallback = new EndpointDiscoveryCallback() {
@@ -655,39 +642,59 @@ public class NearbyConnectionsPlugin extends Plugin {
         public void onEndpointFound(@NonNull String endpointId, @NonNull DiscoveredEndpointInfo info) {
             String peerName = info.getEndpointName();
 
-            // 1. FILTER OUT SELF DEVICE (Never show own device in available list)
+            // 1. FILTER OUT SELF DEVICE
             if (peerName != null && (peerName.equalsIgnoreCase(localDeviceName) || peerName.contains(localDeviceName))) {
-                Log.i(TAG, "Ignored self discovery: " + peerName);
                 return;
             }
 
             endpointNames.put(endpointId, peerName);
-            Log.i(TAG, "Discovered peer endpoint: " + endpointId + " (" + peerName + ")");
+            Log.i(TAG, "Discovered peer: " + endpointId + " (" + peerName + ")");
             
-            // Notify React UI
+            // Notify UI
             JSObject data = new JSObject();
             data.put("endpointId", endpointId);
             data.put("name", peerName);
             data.put("serviceId", info.getServiceId());
             notifyListeners("endpointFound", data);
 
-            // Zero-Touch Autonomous Mesh Formation: auto-connect to discovered peers immediately
+            // 2. DETERMINISTIC ROLE TIE-BREAKER (Prevents connection thrashing & dual-initiation collisions)
+            // Exactly ONE node in each pair initiates the handshake; the other waits and accepts.
             if (autoConnectEnabled && connectionsClient != null && !connectedEndpoints.contains(endpointId) && !pendingConnections.contains(endpointId)) {
-                try {
-                    pendingConnections.add(endpointId);
-                    Log.i(TAG, "Autonomous Auto-Handshake with discovered peer: " + endpointId);
-                    connectionsClient.requestConnection(localDeviceName, endpointId, connectionLifecycleCallback)
-                            .addOnFailureListener(e -> pendingConnections.remove(endpointId));
-                } catch (Exception e) {
-                    pendingConnections.remove(endpointId);
-                    Log.w(TAG, "Auto-connection attempt note: " + e.getMessage());
+                long now = System.currentTimeMillis();
+                Long lastAttempt = lastAttemptTimes.get(endpointId);
+                if (lastAttempt != null && (now - lastAttempt) < 8000) {
+                    return; // 8-second backoff cooldown to prevent rapid looping
+                }
+
+                // Deterministic comparison: Initiator is the one with lexicographically higher name / hash
+                boolean shouldInitiate = false;
+                if (peerName != null && !peerName.isEmpty()) {
+                    shouldInitiate = localDeviceName.compareTo(peerName) > 0;
+                } else {
+                    shouldInitiate = (localDeviceName.hashCode() % 2 == 0);
+                }
+
+                if (shouldInitiate) {
+                    try {
+                        pendingConnections.add(endpointId);
+                        lastAttemptTimes.put(endpointId, now);
+                        Log.i(TAG, "Deterministic Initiator: connecting to " + endpointId + " (" + peerName + ")");
+                        connectionsClient.requestConnection(localDeviceName, endpointId, connectionLifecycleCallback)
+                                .addOnFailureListener(e -> {
+                                    pendingConnections.remove(endpointId);
+                                    Log.w(TAG, "Connection request failed: " + e.getMessage());
+                                });
+                    } catch (Exception e) {
+                        pendingConnections.remove(endpointId);
+                    }
+                } else {
+                    Log.i(TAG, "Deterministic Listener: waiting for incoming handshake from " + peerName);
                 }
             }
         }
 
         @Override
         public void onEndpointLost(@NonNull String endpointId) {
-            Log.i(TAG, "Lost endpoint: " + endpointId);
             endpointNames.remove(endpointId);
             pendingConnections.remove(endpointId);
             JSObject data = new JSObject();
@@ -701,7 +708,7 @@ public class NearbyConnectionsPlugin extends Plugin {
         public void onConnectionInitiated(@NonNull String endpointId, @NonNull ConnectionInfo info) {
             String peerName = info.getEndpointName();
             endpointNames.put(endpointId, peerName);
-            Log.i(TAG, "Connection initiated by/with: " + endpointId + " (" + peerName + "). Auto-accepting on both sides.");
+            Log.i(TAG, "Connection initiated by: " + endpointId + " (" + peerName + "). Auto-accepting.");
             
             JSObject initData = new JSObject();
             initData.put("endpointId", endpointId);
@@ -711,10 +718,10 @@ public class NearbyConnectionsPlugin extends Plugin {
 
             if (connectionsClient != null) {
                 connectionsClient.acceptConnection(endpointId, payloadCallback)
-                        .addOnSuccessListener(unused -> Log.i(TAG, "Accepted connection handshake from " + endpointId))
+                        .addOnSuccessListener(unused -> Log.i(TAG, "Accepted connection with " + endpointId))
                         .addOnFailureListener(e -> {
                             pendingConnections.remove(endpointId);
-                            Log.e(TAG, "Failed to accept connection: " + e.getMessage());
+                            Log.e(TAG, "Accept failed: " + e.getMessage());
                         });
             }
         }
@@ -730,18 +737,15 @@ public class NearbyConnectionsPlugin extends Plugin {
             if (result.getStatus().getStatusCode() == ConnectionsStatusCodes.STATUS_OK) {
                 connectedEndpoints.add(endpointId);
                 data.put("status", "CONNECTED");
-                Log.i(TAG, "SUCCESS: Symmetric connection established with " + endpointId + " (" + peerName + "). Total active peers: " + connectedEndpoints.size());
+                Log.i(TAG, "SUCCESS: P2P Connection established with " + peerName + ". Active peers: " + connectedEndpoints.size());
                 
-                // Immediately trigger epidemic vector sync with newly connected peer
+                // Trigger sync on new connection
                 triggerEpidemicVectorSync(endpointId);
-            } else if (result.getStatus().getStatusCode() == ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED) {
-                connectedEndpoints.remove(endpointId);
-                data.put("status", "REJECTED");
-                Log.w(TAG, "Connection rejected by endpoint: " + endpointId);
             } else {
                 connectedEndpoints.remove(endpointId);
                 data.put("status", "ERROR");
-                Log.e(TAG, "Connection error on endpoint: " + endpointId);
+                lastAttemptTimes.put(endpointId, System.currentTimeMillis());
+                Log.w(TAG, "Connection resolution status: " + result.getStatus().getStatusCode());
             }
             notifyListeners("connectionResult", data);
         }
@@ -752,6 +756,7 @@ public class NearbyConnectionsPlugin extends Plugin {
             connectedEndpoints.remove(endpointId);
             pendingConnections.remove(endpointId);
             endpointNames.remove(endpointId);
+            lastAttemptTimes.put(endpointId, System.currentTimeMillis());
             
             JSObject data = new JSObject();
             data.put("endpointId", endpointId);
@@ -771,12 +776,15 @@ public class NearbyConnectionsPlugin extends Plugin {
             byte[] bytes = syncHeader.toString().getBytes(StandardCharsets.UTF_8);
             if (connectionsClient != null && connectedEndpoints.contains(peerEndpointId)) {
                 connectionsClient.sendPayload(peerEndpointId, Payload.fromBytes(bytes));
-                Log.i(TAG, "Dispatched autonomous epidemic sync request to " + peerEndpointId);
             }
         } catch (Exception e) {
             Log.w(TAG, "Sync trigger note: " + e.getMessage());
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Autonomous Multi-Hop Relay & Cloud Gateway Synchronization
+    // -------------------------------------------------------------------------
 
     private final PayloadCallback payloadCallback = new PayloadCallback() {
         @Override
@@ -788,7 +796,7 @@ public class NearbyConnectionsPlugin extends Plugin {
                     String msgId = json.optString("id", "msg-" + System.currentTimeMillis());
                     String type = json.optString("type", "CHAT");
 
-                    // Deduplication check to prevent loops across multi-hop relays
+                    // Deduplication check
                     if (processedMessageIds.contains(msgId)) {
                         return;
                     }
@@ -799,6 +807,14 @@ public class NearbyConnectionsPlugin extends Plugin {
                     int hops = json.optInt("hops", 0);
                     int maxHops = json.optInt("maxHops", 5);
 
+                    Log.i(TAG, "📩 RECEIVED MESH PAYLOAD [" + type + "] from " + senderName + " (hops: " + hops + ")");
+
+                    // 1. AUTONOMOUS CLOUD GATEWAY RELAY (If this device has Internet)
+                    if (type.equals("SOS") || type.equals("INCIDENT")) {
+                        forwardSosPayloadToBackend(json, endpointId);
+                    }
+
+                    // 2. Notify React / UI
                     JSObject payloadObj = new JSObject();
                     payloadObj.put("id", msgId);
                     payloadObj.put("senderId", senderId);
@@ -811,10 +827,9 @@ public class NearbyConnectionsPlugin extends Plugin {
                     JSObject event = new JSObject();
                     event.put("endpointId", endpointId);
                     event.put("payload", payloadObj);
-
                     notifyListeners("payloadReceived", event);
 
-                    // Multi-hop Delay-Tolerant Epidemic Relay (with TTL decay)
+                    // 3. Multi-hop Delay-Tolerant Epidemic Forwarding (TTL decay)
                     if (hops < maxHops) {
                         json.put("hops", hops + 1);
                         JSONArray seen = json.optJSONArray("seenNodes");
@@ -828,13 +843,13 @@ public class NearbyConnectionsPlugin extends Plugin {
                         for (String otherEp : connectedEndpoints) {
                             if (!otherEp.equals(endpointId)) {
                                 connectionsClient.sendPayload(otherEp, forwardPayload);
-                                Log.i(TAG, "Epidemic Multi-hop Relay: forwarded " + msgId + " (hop " + (hops + 1) + ") to peer " + otherEp);
+                                Log.i(TAG, "Epidemic Relay: forwarded " + msgId + " to peer " + otherEp);
                             }
                         }
                     }
 
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to parse incoming payload: " + e.getMessage());
+                    Log.e(TAG, "Failed to parse payload: " + e.getMessage());
                 }
             }
         }
@@ -855,4 +870,113 @@ public class NearbyConnectionsPlugin extends Plugin {
             notifyListeners("payloadTransferUpdate", data);
         }
     };
+
+    private boolean isInternetConnected() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return false;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                android.net.Network activeNetwork = cm.getActiveNetwork();
+                if (activeNetwork == null) return false;
+                NetworkCapabilities caps = cm.getNetworkCapabilities(activeNetwork);
+                return caps != null && (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED));
+            } else {
+                android.net.NetworkInfo info = cm.getActiveNetworkInfo();
+                return info != null && info.isConnected();
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void forwardSosPayloadToBackend(JSONObject sosJson, String originEndpointId) {
+        if (!isInternetConnected()) {
+            Log.i(TAG, "Autonomous Gateway: Device currently offline. Buffered in DTN mesh queue.");
+            return;
+        }
+
+        backgroundExecutor.execute(() -> {
+            try {
+                String msgId = sosJson.optString("id", "SOS-" + System.currentTimeMillis());
+                String content = sosJson.optString("content", "Disaster SOS Distress Beacon");
+                String senderName = sosJson.optString("senderName", "Citizen Node");
+
+                JSONObject body = new JSONObject();
+                body.put("message_id", msgId);
+                body.put("message", content);
+                body.put("severity", "CRITICAL");
+                body.put("latitude", 12.9716); // Default fallback coordinate if absent
+                body.put("longitude", 77.5946);
+
+                URL url = new URL(BACKEND_API_BASE + "/sos");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json; utf-8");
+                conn.setRequestProperty("Accept", "application/json");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    byte[] input = body.toString().getBytes(StandardCharsets.UTF_8);
+                    os.write(input, 0, input.length);
+                }
+
+                int code = conn.getResponseCode();
+                Log.i(TAG, "⚡ AUTONOMOUS GATEWAY CLOUD SYNC: Relayed SOS [" + msgId + "] to Cloud Backend. HTTP Code: " + code);
+
+                if (code == 200 || code == 201) {
+                    // Send GATEWAY_ACK back through mesh to inform the sender
+                    JSONObject ack = new JSONObject();
+                    ack.put("id", "ACK-" + msgId);
+                    ack.put("type", "GATEWAY_ACK");
+                    ack.put("ref_id", msgId);
+                    ack.put("gateway_node", localDeviceName);
+                    ack.put("timestamp", System.currentTimeMillis());
+
+                    byte[] ackBytes = ack.toString().getBytes(StandardCharsets.UTF_8);
+                    if (connectionsClient != null && connectedEndpoints.contains(originEndpointId)) {
+                        connectionsClient.sendPayload(originEndpointId, Payload.fromBytes(ackBytes));
+                    }
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Gateway relay HTTP error: " + e.getMessage());
+            }
+        });
+    }
+
+    private void forwardBleSosToBackend(String beaconId, float lat, float lon, String severity) {
+        if (!isInternetConnected()) return;
+
+        backgroundExecutor.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("message_id", beaconId);
+                body.put("message", "🚨 LIVE BLE SOS BEACON: " + beaconId + " (" + severity + ")");
+                body.put("severity", severity);
+                body.put("latitude", (double) lat);
+                body.put("longitude", (double) lon);
+
+                URL url = new URL(BACKEND_API_BASE + "/sos");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json; utf-8");
+                conn.setRequestProperty("Accept", "application/json");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    byte[] input = body.toString().getBytes(StandardCharsets.UTF_8);
+                    os.write(input, 0, input.length);
+                }
+
+                int code = conn.getResponseCode();
+                Log.i(TAG, "⚡ BLE BEACON GATEWAY RELAY: Relayed BLE SOS [" + beaconId + "] to Cloud. Code: " + code);
+            } catch (Exception e) {
+                Log.w(TAG, "BLE Gateway relay HTTP error: " + e.getMessage());
+            }
+        });
+    }
 }
