@@ -1,20 +1,20 @@
 -- Merging decision tree log ---
 provider#androidx.core.content.FileProvider
-INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:58:9-66:20
+INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:74:9-82:20
 	android:grantUriPermissions
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:62:13-47
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:78:13-47
 	android:authorities
 		INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:60:13-64
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:76:13-64
 	android:exported
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:61:13-37
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:77:13-37
 	android:name
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:59:13-62
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:75:13-62
 manifest
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-69:12
-INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-69:12
-INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-69:12
-INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-69:12
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-85:12
+INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-85:12
+INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-85:12
+INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:2:1-85:12
 MERGED from [:capacitor-android] C:\Users\vansh\Desktop\Projects\vajranet-Android\node_modules\@capacitor\android\capacitor\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:2:1-7:12
 MERGED from [:capacitor-cordova-android-plugins] C:\Users\vansh\Desktop\Projects\vajranet-Android\android\capacitor-cordova-android-plugins\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:2:1-11:12
 MERGED from [org.apache.cordova:framework:14.0.1] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e47013dec160bb8e8e78795049f410c2\transformed\framework-14.0.1\AndroidManifest.xml:20:1-27:12
@@ -133,9 +133,21 @@ uses-permission#android.permission.NEARBY_WIFI_DEVICES
 ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:27:5-78
 	android:name
 		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:27:22-75
+uses-permission#android.permission.SEND_SMS
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:30:5-67
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:30:22-64
+uses-permission#android.permission.RECEIVE_SMS
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:31:5-70
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:31:22-67
+uses-permission#android.permission.READ_SMS
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:32:5-67
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:32:22-64
 application
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:29:5-67:19
-INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:29:5-67:19
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:34:5-83:19
+INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:34:5-83:19
 MERGED from [:capacitor-cordova-android-plugins] C:\Users\vansh\Desktop\Projects\vajranet-Android\android\capacitor-cordova-android-plugins\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:8:5-9:19
 MERGED from [:capacitor-cordova-android-plugins] C:\Users\vansh\Desktop\Projects\vajranet-Android\android\capacitor-cordova-android-plugins\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:8:5-9:19
 MERGED from [com.google.android.gms:play-services-nearby:19.3.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\e66d8e6452804feefe331c36a1a64fe3\transformed\play-services-nearby-19.3.0\AndroidManifest.xml:8:5-10:19
@@ -163,55 +175,73 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\va
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.17.0] C:\Users\vansh\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:34:9-35
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:39:9-35
 	android:label
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:32:9-41
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:37:9-41
 	android:roundIcon
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:33:9-54
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:38:9-54
 	android:icon
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:31:9-43
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:36:9-43
 	android:allowBackup
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:30:9-35
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:35:9-35
 	android:theme
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:35:9-40
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:9-40
 activity#com.vajranet.sih.MainActivity
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:37:9-50:20
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:42:9-55:20
 	android:label
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:40:13-56
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:45:13-56
 	android:launchMode
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:42:13-44
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:47:13-44
 	android:exported
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:43:13-36
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:48:13-36
 	android:configChanges
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:38:13-148
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:43:13-148
 	android:theme
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:41:13-62
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:46:13-62
 	android:name
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:39:13-41
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:44:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:45:13-48:29
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:50:13-53:29
 action#android.intent.action.MAIN
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:46:17-69
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:51:17-69
 	android:name
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:46:25-66
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:51:25-66
 category#android.intent.category.LAUNCHER
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:47:17-77
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:52:17-77
 	android:name
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:47:27-74
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:52:27-74
 service#com.vajranet.sih.VajraMeshService
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:53:9-56:40
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:58:9-61:40
 	android:exported
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:56:13-37
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:61:13-37
 	android:foregroundServiceType
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:55:13-60
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:60:13-60
 	android:name
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:54:13-45
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:59:13-45
+receiver#com.vajranet.sih.VajraSmsReceiver
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:64:9-72:20
+	android:enabled
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:66:13-35
+	android:exported
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:67:13-36
+	android:permission
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:68:13-66
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:65:13-45
+intent-filter#action:name:android.provider.Telephony.SMS_RECEIVED
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:69:13-71:29
+	android:priority
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:69:28-50
+action#android.provider.Telephony.SMS_RECEIVED
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:70:17-82
+	android:name
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:70:25-79
 meta-data#android.support.FILE_PROVIDER_PATHS
-ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:63:13-65:64
+ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:79:13-81:64
 	android:resource
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:65:17-51
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:81:17-51
 	android:name
-		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:64:17-67
+		ADDED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml:80:17-67
 uses-sdk
 INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Users\vansh\Desktop\Projects\vajranet-Android\android\app\src\main\AndroidManifest.xml

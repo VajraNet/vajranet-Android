@@ -483,10 +483,21 @@ export default function CitizenApp() {
         const mapUrl = `https://maps.google.com/?q=${gpsCoords.lat},${gpsCoords.lon}`;
         const smsContent = `🚨 VAJRANET EMERGENCY SOS\nFrom: ${user?.name || 'Citizen'}\nUrgency: ${sosType}\nGPS: ${gpsCoords.lat}, ${gpsCoords.lon}\nMap: ${mapUrl}\nNotes: ${sosNotes.trim() || 'Immediate disaster dispatch requested.'}`;
         
-        // Launch 1-Tap SMS Intent
-        setTimeout(() => {
+        // Trigger Silent Background 1-Tap SMS Dispatch on Native Android (Zero Popups/App Picker)
+        if (Capacitor.isNativePlatform() && NearbyConnections && NearbyConnections.sendDirectSms) {
+          NearbyConnections.sendDirectSms({
+            phone: targetNumber,
+            message: smsContent
+          }).then(() => {
+            console.log('⚡ Silent Background SMS SOS Dispatched to ' + targetNumber);
+          }).catch((err) => {
+            console.warn('Silent SMS error, falling back to intent:', err);
+            window.location.href = `sms:${targetNumber}?body=${encodeURIComponent(smsContent)}`;
+          });
+        } else {
+          // Web Browser Fallback
           window.location.href = `sms:${targetNumber}?body=${encodeURIComponent(smsContent)}`;
-        }, 600);
+        }
       } catch (smsErr) {
         console.warn('SMS dispatch fallback error:', smsErr);
       }

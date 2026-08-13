@@ -33,6 +33,11 @@
     <!-- Android 13+ (API 33+) Nearby Wi-Fi Devices Permission -->
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
 
+    <!-- SMS Emergency Dispatch & Background Ingestion Permissions -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+
     <permission
         android:name="com.vajranet.sih.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         android:protectionLevel="signature" />
@@ -68,6 +73,17 @@
             android:name="com.vajranet.sih.VajraMeshService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+
+        <!-- Automated Background SMS Ingestion Receiver -->
+        <receiver
+            android:name="com.vajranet.sih.VajraSmsReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS" >
+            <intent-filter android:priority="999" >
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"

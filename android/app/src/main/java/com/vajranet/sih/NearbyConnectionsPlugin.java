@@ -846,4 +846,29 @@ public class NearbyConnectionsPlugin extends Plugin {
             notifyListeners("payloadTransferUpdate", data);
         }
     };
+
+    @PluginMethod
+    public void sendDirectSms(PluginCall call) {
+        String phone = call.getString("phone");
+        String message = call.getString("message");
+
+        if (phone == null || message == null) {
+            call.reject("Phone number and message content are required");
+            return;
+        }
+
+        try {
+            android.telephony.SmsManager smsManager = android.telephony.SmsManager.getDefault();
+            smsManager.sendTextMessage(phone, null, message, null, null);
+            Log.i("NearbyPlugin", "⚡ Silent Background SMS Sent to: " + phone);
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            ret.put("phone", phone);
+            call.resolve(ret);
+        } catch (Exception e) {
+            Log.e("NearbyPlugin", "Failed to send background SMS", e);
+            call.reject("SMS dispatch error: " + e.getMessage());
+        }
+    }
 }
