@@ -372,6 +372,15 @@ export default function CitizenApp() {
         }
       } catch (e) {}
 
+      // 4. Fetch registered trusted responder relay phone numbers for offline SMS fallback
+      try {
+        const trustedRes = await apiFetch('/devices/trusted/');
+        const trustedData = trustedRes?.data || (Array.isArray(trustedRes) ? trustedRes : []);
+        if (trustedData.length > 0) {
+          localStorage.setItem('vajranet_trusted_phones', JSON.stringify(trustedData));
+        }
+      } catch (e) {}
+
       if (combinedAlerts.length > 0) {
         setAnnouncements(combinedAlerts);
       }
@@ -439,7 +448,7 @@ export default function CitizenApp() {
       console.warn('Broadcast failed', e);
     }
 
-    // Transmit to Government and Volunteer feeds (or buffer if offline)
+    // Transmit to Government and Volunteer feeds (or fallback to Trusted SMS + DTN Queue)
     try {
       const res = await apiFetch('/sos', {
         method: 'POST',
@@ -448,7 +457,7 @@ export default function CitizenApp() {
       setAssignedSosId(res?.id || `SOS-${Math.floor(100 + Math.random() * 900)}`);
       setSosStatus('RECEIVED');
       setSosSent(true);
-    } catch {
+    } catch (err) {
       // Buffer in offline DTN mesh queue
       const offlineEvent = {
         message_id: msgId,
@@ -461,6 +470,26 @@ export default function CitizenApp() {
       setAssignedSosId(`MESH-RELAY-${Math.floor(100 + Math.random() * 900)}`);
       setSosStatus('SENT');
       setSosSent(true);
+
+      // Trigger 1-Tap Fallback Emergency SMS Dispatch to Registered Trusted Relay Numbers & Emergency Contacts
+      try {
+        let trustedPhones = [];
+        try {
+          const cached = localStorage.getItem('vajranet_trusted_phones');
+          if (cached) trustedPhones = JSON.parse(cached);
+        } catch (e) {}
+
+        const targetNumber = trustedPhones.length > 0 ? trustedPhones[0].phone : (emergencyContacts[0]?.phone || '112');
+        const mapUrl = `https://maps.google.com/?q=${gpsCoords.lat},${gpsCoords.lon}`;
+        const smsContent = `🚨 VAJRANET EMERGENCY SOS\nFrom: ${user?.name || 'Citizen'}\nUrgency: ${sosType}\nGPS: ${gpsCoords.lat}, ${gpsCoords.lon}\nMap: ${mapUrl}\nNotes: ${sosNotes.trim() || 'Immediate disaster dispatch requested.'}`;
+        
+        // Launch 1-Tap SMS Intent
+        setTimeout(() => {
+          window.location.href = `sms:${targetNumber}?body=${encodeURIComponent(smsContent)}`;
+        }, 600);
+      } catch (smsErr) {
+        console.warn('SMS dispatch fallback error:', smsErr);
+      }
     } finally {
       setSosSubmitting(false);
     }
