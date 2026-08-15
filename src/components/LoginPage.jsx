@@ -144,12 +144,12 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
       <div className="max-w-md mx-auto w-full space-y-5 relative z-10">
         
         {/* Emblem & Portal Branding */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center p-1 rounded-2xl bg-[#0B2545]/80 border border-cyan-400/50 shadow-2xl">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center p-2 rounded-3xl bg-[#0B2545]/90 border border-cyan-400/50 shadow-2xl backdrop-blur-md">
             <img 
-              src="/app-icon.jpg" 
+              src="/app-icon-transparent.png" 
               alt="VajraNet Citizen" 
-              className="w-14 h-14 rounded-xl shadow-inner object-cover"
+              className="w-16 h-16 object-contain drop-shadow-lg"
             />
           </div>
 
@@ -157,7 +157,10 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
             <h1 className="text-2xl font-black text-white tracking-tight">
               VajraNet Citizen Portal
             </h1>
-            <p className="text-xs text-cyan-300 font-semibold font-mono mt-0.5">
+            <p className="text-[11px] uppercase tracking-widest text-[#D4AF37] font-mono font-bold mt-0.5">
+              Disaster Communication Platform
+            </p>
+            <p className="text-xs text-cyan-300 font-semibold font-mono mt-1">
               "When The World Goes Dark, We Stay Connected."
             </p>
           </div>

@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.vajranet.sih.app-mergeDebugResources-29:/values-v31/values-v31.xml",
+            "outputFile": "com.vajranet.sih.app-mergeDebugResources-30:/values-v31/values-v31.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\vansh\\.gradle\\caches\\8.14.3\\transforms\\4f5eb2e1ae45a07736e2f6ed862ea36a\\transformed\\core-splashscreen-1.2.0\\res\\values-v31\\values-v31.xml",
+                    "source": "C:\\Users\\vansh\\.gradle\\caches\\8.14.3\\transforms\\505b0935a98197788cf2d31f4c3e1da2\\transformed\\core-splashscreen-1.2.0\\res\\values-v31\\values-v31.xml",
                     "from": {
                         "startLines": "2,6,13",
                         "startColumns": "4,4,4",
